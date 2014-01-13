@@ -178,7 +178,7 @@ void BlueCapPeripheral::listen() {
 				DLOG(pipe, HEX);
 				DLOG(F("length:"));
 				DLOG(length, DEC);
-				didDataReceived(pipe, aci_evt->params.data_received.rx_data.aci_data, length);
+				didReceiveData(pipe, aci_evt->params.data_received.rx_data.aci_data, length);
 				break;
 			}
 
