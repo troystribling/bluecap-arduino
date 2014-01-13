@@ -168,21 +168,16 @@ void BlueCapPeripheral::listen() {
 				DLOG(F("Advertising started"));
 				break;
 
-			case ACI_EVT_DATA_RECEIVED:
-				for(int i=0; i < aci_evt->len - 2; i++) {
-					if(rx_buffer_len == MAX_RX_BUFF) {
-						break;
-					}
-					else {
-						if(p_back == &rx_buff[MAX_RX_BUFF]) {
-							p_back = &rx_buff[0];
-						}
-						*p_back = aci_evt->params.data_received.rx_data.aci_data[i];
-						rx_buffer_len++;
-						p_back++;
-					}
-				}
+			case ACI_EVT_DATA_RECEIVED: {
+				int pipe = aci_evt->params.data_received.rx_data.pipe_number;
+				int length = aci_evt->len - 2;
+				DLOG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
+				DLOG(pipe, HEX);
+				DLOG(F("length:"));
+				DLOG(length, DEC);
+				onDataReceived(pipe, aci_evt->params.data_received.rx_data.aci_data, length);
 				break;
+			}
 
 			case ACI_EVT_DATA_CREDIT:
 				aci_state.data_credit_available = aci_state.data_credit_available + aci_evt->params.data_credit.credit;
@@ -254,9 +249,9 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 
 // private methods
 void BlueCapPeripheral::init(hal_aci_data_t*               messages,
-          				 int                           messagesCount,
-          				 services_pipe_type_mapping_t* mapping,
-          				 int                           mappingCount) {
+          				 					 int                           messagesCount,
+          				 					 services_pipe_type_mapping_t* mapping,
+          				 					 int                           mappingCount) {
 
 	setUpMessages = messages;
 	numberOfSetupMessages = messagesCount;
