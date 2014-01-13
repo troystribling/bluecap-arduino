@@ -46,7 +46,6 @@ uint8_t rx_buff[MAX_RX_BUFF+1];
 uint8_t rx_buffer_len = 0;
 uint8_t *p_before = &rx_buff[0] ;
 uint8_t *p_back = &rx_buff[0];
-static unsigned char is_connected = 0;
 
 static uint8_t reqn_pin = 9, rdyn_pin = 8;
 
@@ -203,36 +202,6 @@ void BlueCapPeripheral::listen() {
 	}
 }
 
-int BlueCapPeripheral::read() {
-	int data;
-	if(rx_buffer_len == 0) return -1;
-	if(p_before == &rx_buff[MAX_RX_BUFF]) {
-			p_before = &rx_buff[0];
-	}
-	data = *p_before;
-	p_before ++;
-	rx_buffer_len--;
-	return data;
-}
-
-void BlueCapPeripheral::write(unsigned char data) {
-	if(tx_buffer_len == MAX_TX_BUFF) {
-			return;
-	}
-	tx_buff[tx_buffer_len] = data;
-	tx_buffer_len++;
-}
-
-void BlueCapPeripheral::writeBytes(unsigned char *data, uint8_t len) {
-  for (int i = 0; i < len; i++) {
-    write(data[i]);
-  }
-}
-
-unsigned char BlueCapPeripheral::available() {
-	return rx_buffer_len;
-}
-
 unsigned char BlueCapPeripheral::connected() {
     return is_connected;
 }
@@ -257,6 +226,7 @@ void BlueCapPeripheral::init(hal_aci_data_t*               messages,
 	numberOfSetupMessages = messagesCount;
 	servicesPipeTypeMapping = mapping;
 	numberOfPipes = mappingCount;
+	is_connected = 0;
 }
 
 void BlueCapPeripheral::writeBuffers() {

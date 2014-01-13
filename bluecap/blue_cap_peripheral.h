@@ -19,11 +19,6 @@ public:
   void begin();
   void listen();
 
-  int read();
-  void write(unsigned char data);
-  void writeBytes(unsigned char *data, unsigned char len);
-
-  unsigned char available();
   unsigned char connected(void);
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
@@ -39,6 +34,7 @@ private:
   int                             numberOfPipes;
   hal_aci_data_t*                 setUpMessages;
   int                             numberOfSetupMessages;
+  unsigned char                   is_connected;
 
 private:
 
