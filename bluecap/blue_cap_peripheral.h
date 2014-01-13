@@ -26,10 +26,10 @@ public:
 
 protected:
 
-  virtual void onDataReceived(uint8_t characteristic_id, uint8_t* data, uint8_t length){};
-  virtual void onDisconnect(){};
-  virtual void onConnect(){};
-  virtual void onStartAdvertising(){};
+  virtual void didDataReceived(uint8_t characteristic_id, uint8_t* data, uint8_t length){};
+  virtual void didDisconnect(){};
+  virtual void didConnect(){};
+  virtual void didStartAdvertising(){};
 
 private:
 
