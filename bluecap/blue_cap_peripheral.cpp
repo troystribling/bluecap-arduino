@@ -125,6 +125,7 @@ void BlueCapPeripheral::listen() {
 					case ACI_DEVICE_STANDBY:
 						DLOG(F("Evt Device Started: Standby"));
 						lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+						onStartAdvertising();
 						DLOG(F("Advertising started"));
 						break;
 				}
@@ -144,6 +145,7 @@ void BlueCapPeripheral::listen() {
 				is_connected = 1;
 				DLOG(F("Evt Connected"));
 				aci_state.data_credit_available = aci_state.data_credit_total;
+				onConnect();
 				lib_aci_device_version();
 				break;
 
@@ -163,8 +165,10 @@ void BlueCapPeripheral::listen() {
 				is_connected = 0;
 				ack = 1;
 				DLOG(F("Evt Disconnected/Advertising timed out"));
+				onDisconnect();
 				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
 				DLOG(F("Advertising started"));
+				onStartAdvertising();
 				break;
 
 			case ACI_EVT_DATA_RECEIVED: {
