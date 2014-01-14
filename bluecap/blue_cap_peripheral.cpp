@@ -9,12 +9,6 @@
 #undef PROGMEM
 #define PROGMEM __attribute__(( section(".progmem.data") ))
 
-#define MAX_TX_BUFF 	64
-#define MAX_RX_BUFF 	64
-#define MAX_NAME_SIZE 10
-
-volatile byte ack = 0;
-
 /*aci_struct that will contain :
 total initial credits
 current credit
@@ -38,32 +32,27 @@ static bool timing_change_done = false;
 /*Initialize the radio_ack. This is the ack received for every transmitted packet.*/
 //static bool radio_ack_pending = false;
 
-//The maximum size of a packet is 64 bytes.
-static uint8_t tx_buff[MAX_TX_BUFF];
-uint8_t tx_buffer_len = 0;
-
-uint8_t rx_buff[MAX_RX_BUFF+1];
-uint8_t rx_buffer_len = 0;
-uint8_t *p_before = &rx_buff[0] ;
-uint8_t *p_back = &rx_buff[0];
-
 static uint8_t reqn_pin = 9, rdyn_pin = 8;
 
 // public methods
-BlueCapPeripheral::BlueCapPeripheral() {
-	init(NULL, 0, NULL, 0);
+BlueCapPeripheral::BlueCapPeripheral(uint8_t reqn, uint8_t rdyn) {
+	init(reqn, rdyn, NULL, 0, NULL, 0);
 }
 
-BlueCapPeripheral::BlueCapPeripheral(hal_aci_data_t* messages,
-          			 										 int             messagesCount) {
-	init(messages, messagesCount, NULL, 0);
+BlueCapPeripheral::BlueCapPeripheral(uint8_t 					reqn,
+														 				 uint8_t 				 	rdyn,
+														 				 hal_aci_data_t* 	messages,
+          			 										 int             	messagesCount) {
+	init(reqn, rdyn, messages, messagesCount, NULL, 0);
 }
 
-BlueCapPeripheral::BlueCapPeripheral(hal_aci_data_t*               messages,
+BlueCapPeripheral::BlueCapPeripheral(uint8_t 											 reqn,
+														 				 uint8_t 				 							 rdyn,
+														 				 hal_aci_data_t*               messages,
           			 										 int                           messagesCount,
           			 										 services_pipe_type_mapping_t* mapping,
           			 										 int                           mappingCount) {
-	init(messages, messagesCount, mapping, mappingCount);
+	init(reqn, rdyn, messages, messagesCount, mapping, mappingCount);
 }
 
 BlueCapPeripheral::~BlueCapPeripheral() {
@@ -117,13 +106,13 @@ void BlueCapPeripheral::listen() {
 				aci_state.data_credit_total = aci_evt->params.device_started.credit_available;
 				switch(aci_evt->params.device_started.device_mode) {
 					case ACI_DEVICE_SETUP:
-						DLOG(F("Evt Device Started: Setup"));
+						DLOG(F("ACI_DEVICE_SETUP"));
 						if (ACI_STATUS_TRANSACTION_COMPLETE != do_aci_setup(&aci_state)) {
-							DLOG(F("Error in ACI Setup"));
+							DLOG(F("Error ACI_DEVICE_SETUP"));
 						}
 						break;
 					case ACI_DEVICE_STANDBY:
-						DLOG(F("Evt Device Started: Standby"));
+						DLOG(F("ACI_DEVICE_STANDBY"));
 						lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
 						didStartAdvertising();
 						DLOG(F("Advertising started"));
@@ -132,10 +121,10 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CMD_RSP:
-				DLOG(F("ACI Command "));
+				DLOG(F("ACI_EVT_CMD_RSP"));
 				DLOG(aci_evt->params.cmd_rsp.cmd_opcode, HEX);
 				if (ACI_STATUS_SUCCESS != aci_evt->params.cmd_rsp.cmd_status) {
-					DLOG(F("Evt Cmd respone: Error. Arduino is in an while(1); loop"));
+					DLOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
 					while (1);
 				} else {
 				}
@@ -143,14 +132,14 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_CONNECTED:
 				is_connected = 1;
-				DLOG(F("Evt Connected"));
+				DLOG(F("ACI_EVT_CONNECTED"));
 				aci_state.data_credit_available = aci_state.data_credit_total;
 				didConnect();
 				lib_aci_device_version();
 				break;
 
 			case ACI_EVT_PIPE_STATUS:
-				DLOG(F("Evt Pipe Status"));
+				DLOG(F("ACI_EVT_PIPE_STATUS"));
 				// if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX) && (false == timing_change_done)) {
 				// 	lib_aci_change_timing_GAP_PPCP();
 				// 	timing_change_done = true;
@@ -158,13 +147,13 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_TIMING:
-				DLOG(F("Evt link connection interval changed"));
+				DLOG(F("ACI_EVT_TIMING"));
 				break;
 
 			case ACI_EVT_DISCONNECTED:
 				is_connected = 0;
 				ack = 1;
-				DLOG(F("Evt Disconnected/Advertising timed out"));
+				DLOG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
 				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
 				DLOG(F("Advertising started"));
@@ -185,16 +174,15 @@ void BlueCapPeripheral::listen() {
 			case ACI_EVT_DATA_CREDIT:
 				aci_state.data_credit_available = aci_state.data_credit_available + aci_evt->params.data_credit.credit;
 				DLOG(F("ACI_EVT_DATA_CREDIT"));
-				DLOG(F("Data Credit available:"));
 				DLOG(aci_state.data_credit_available,DEC);
 				ack=1;
 				break;
 
 			case ACI_EVT_PIPE_ERROR:
 				//See the appendix in the nRF8001 Product Specication for details on the error codes
-				DLOG(F("ACI Evt Pipe Error: Pipe #:"));
+				DLOG(F("ACI_EVT_PIPE_ERROR: Pipe #:"));
 				DLOG(aci_evt->params.pipe_error.pipe_number, DEC);
-				DLOG(F("  Pipe Error Code: 0x"));
+				DLOG(F("Pipe Error Code: 0x"));
 				DLOG(aci_evt->params.pipe_error.error_code, HEX);
 
 				//Increment the credit available as the data packet was not sent
@@ -221,7 +209,9 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 }
 
 // private methods
-void BlueCapPeripheral::init(hal_aci_data_t*               messages,
+void BlueCapPeripheral::init(uint8_t 											 reqn,
+														 uint8_t 											 rdyn,
+														 hal_aci_data_t*               messages,
           				 					 int                           messagesCount,
           				 					 services_pipe_type_mapping_t* mapping,
           				 					 int                           mappingCount) {
@@ -231,6 +221,9 @@ void BlueCapPeripheral::init(hal_aci_data_t*               messages,
 	servicesPipeTypeMapping = mapping;
 	numberOfPipes = mappingCount;
 	is_connected = 0;
+	ack = 0;
+	reqn_pin = reqn;
+	rdyn_pin = rdyn;
 }
 
 void BlueCapPeripheral::writeBuffers() {

@@ -7,10 +7,14 @@ class BlueCapPeripheral {
 
 public:
 
-  BlueCapPeripheral();
-  BlueCapPeripheral(hal_aci_data_t* messages,
+  BlueCapPeripheral(uint8_t reqn, uint8_t rdyn);
+  BlueCapPeripheral(uint8_t         reqn,
+                    uint8_t         rdyn,
+                    hal_aci_data_t* messages,
                     int             messagesCount);
-  BlueCapPeripheral(hal_aci_data_t*               messages,
+  BlueCapPeripheral(uint8_t                       reqn,
+                    uint8_t                       rdyn,
+                    hal_aci_data_t*               messages,
                     int                           messagesCount,
                     services_pipe_type_mapping_t* mapping,
                     int                           mappingCount);
@@ -38,10 +42,15 @@ private:
   hal_aci_data_t*                 setUpMessages;
   int                             numberOfSetupMessages;
   unsigned char                   is_connected;
+  unsigned char                   ack;
+  uint8_t                         reqn_pin;
+  uint8_t                         rdyn_pin;
 
 private:
 
-  void init(hal_aci_data_t*               messages,
+  void init(uint8_t                       reqn,
+            uint8_t                       rdyn,
+            hal_aci_data_t*               messages,
             int                           messagesCount,
             services_pipe_type_mapping_t* mapping,
             int                           mappingCount);
