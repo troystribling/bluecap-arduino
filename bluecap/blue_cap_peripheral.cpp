@@ -9,31 +9,6 @@
 #undef PROGMEM
 #define PROGMEM __attribute__(( section(".progmem.data") ))
 
-/*aci_struct that will contain :
-total initial credits
-current credit
-current state of the aci (setup/standby/active/sleep)
-open remote pipe pending
-close remote pipe pending
-Current pipe available bitmap
-Current pipe closed bitmap
-Current connection interval, slave latency and link supervision timeout
-Current State of the the GATT client (Service Discovery)
-Status of the bond (R) Peer address*/
-static struct aci_state_t aci_state;
-
-/*Temporary buffers for sending ACI commands*/
-static hal_aci_evt_t  aci_data;
-//static hal_aci_data_t aci_cmd;
-
-/*Timing change state variable*/
-static bool timing_change_done = false;
-
-/*Initialize the radio_ack. This is the ack received for every transmitted packet.*/
-//static bool radio_ack_pending = false;
-
-static uint8_t reqn_pin = 9, rdyn_pin = 8;
-
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t reqn, uint8_t rdyn) {
 	init(reqn, rdyn, NULL, 0, NULL, 0);
@@ -140,9 +115,9 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
-				// if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX) && (false == timing_change_done)) {
+				// if (lib_aci_is_pipe_available(&aci_state, PIPE_UART_OVER_BTLE_UART_TX_TX) && (timing_change_done == 0)) {
 				// 	lib_aci_change_timing_GAP_PPCP();
-				// 	timing_change_done = true;
+				// 	timing_change_done = 1;
 				// }
 				break;
 
@@ -224,6 +199,7 @@ void BlueCapPeripheral::init(uint8_t 											 reqn,
 	ack = 0;
 	reqn_pin = reqn;
 	rdyn_pin = rdyn;
+	timing_change_done = 0;
 }
 
 void BlueCapPeripheral::writeBuffers() {

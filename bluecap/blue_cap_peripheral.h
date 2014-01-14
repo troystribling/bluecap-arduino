@@ -43,8 +43,11 @@ private:
   int                             numberOfSetupMessages;
   unsigned char                   is_connected;
   unsigned char                   ack;
+  unsigned char                   timing_change_done;
   uint8_t                         reqn_pin;
   uint8_t                         rdyn_pin;
+  aci_state_t                     aci_state;
+  hal_aci_evt_t                   aci_data;
 
 private:
 
