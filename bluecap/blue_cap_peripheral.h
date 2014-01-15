@@ -21,7 +21,7 @@ public:
   ~BlueCapPeripheral();
 
   void begin();
-  void listen();
+  virtual void loop(){listen();};
 
   unsigned char connected(void);
 
@@ -30,7 +30,7 @@ public:
 
 protected:
 
-  virtual void didReceiveData(uint8_t characteristic_id, uint8_t* data, uint8_t length){};
+  virtual void didReceiveData(uint8_t characteristicId, uint8_t* data, uint8_t length){};
   virtual void didDisconnect(){};
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
@@ -41,13 +41,13 @@ private:
   int                             numberOfPipes;
   hal_aci_data_t*                 setUpMessages;
   int                             numberOfSetupMessages;
-  unsigned char                   is_connected;
+  unsigned char                   isConnected;
   unsigned char                   ack;
-  unsigned char                   timing_change_done;
-  uint8_t                         reqn_pin;
-  uint8_t                         rdyn_pin;
-  aci_state_t                     aci_state;
-  hal_aci_evt_t                   aci_data;
+  unsigned char                   timingChangeDone;
+  uint8_t                         reqnPin;
+  uint8_t                         rdynPin;
+  aci_state_t                     aciState;
+  hal_aci_evt_t                   aciData;
 
 private:
 
@@ -58,7 +58,7 @@ private:
             services_pipe_type_mapping_t* mapping,
             int                           mappingCount);
 
-  void writeBuffers();
+  void listen();
 };
 
 #endif
