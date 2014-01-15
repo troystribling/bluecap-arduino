@@ -68,6 +68,47 @@ void BlueCapPeripheral::begin() {
 	delay(100);
 }
 
+bool BlueCapPeripheral::connected() {
+    return isConnected;
+}
+
+bool BlueCapPeripheral::sendAck(uint8_t pipe) {
+	return lib_aci_send_ack(&aciState, pipe);
+}
+
+bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
+	return lib_aci_send_nack(&aciState, pipe, errorCode);
+}
+
+void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
+	servicesPipeTypeMapping = mapping;
+	numberOfPipes = count;
+}
+
+void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
+	setUpMessages = messages;
+	numberOfSetupMessages = count;
+}
+
+// private methods
+void BlueCapPeripheral::init(uint8_t 											 reqn,
+														 uint8_t 											 rdyn,
+														 hal_aci_data_t*               messages,
+          				 					 int                           messagesCount,
+          				 					 services_pipe_type_mapping_t* mapping,
+          				 					 int                           mappingCount) {
+
+	setUpMessages = messages;
+	numberOfSetupMessages = messagesCount;
+	servicesPipeTypeMapping = mapping;
+	numberOfPipes = mappingCount;
+	isConnected = false;
+	ack = false;
+	reqnPin = reqn;
+	rdynPin = rdyn;
+	timingChangeDone = false;
+}
+
 void BlueCapPeripheral::listen() {
 	if (lib_aci_event_get(&aciState, &aciData)) {
 		aci_evt_t  *aciEvt;
@@ -102,8 +143,8 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CONNECTED:
-				isConnected = 1;
-				timingChangeDone = 0;
+				isConnected = true;
+				timingChangeDone = false;
 				DLOG(F("ACI_EVT_CONNECTED"));
 				aciState.data_credit_available = aciState.data_credit_total;
 				didConnect();
@@ -112,10 +153,10 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
-				// if (lib_aci_is_pipe_available(&aciState, PIPE_UART_OVER_BTLE_UART_TX_TX) && (timingChangeDone == 0)) {
-				// 	lib_aci_change_timing_GAP_PPCP();
-				// 	timingChangeDone = 1;
-				// }
+				if ((txPipesAvailable() == 1) && (timingChangeDone == false)) {
+					lib_aci_change_timing_GAP_PPCP();
+					timingChangeDone = true;
+				}
 				break;
 
 			case ACI_EVT_TIMING:
@@ -123,8 +164,8 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_DISCONNECTED:
-				isConnected = 0;
-				ack = 1;
+				isConnected = false;
+				ack = true;
 				DLOG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
 				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
@@ -147,7 +188,7 @@ void BlueCapPeripheral::listen() {
 				aciState.data_credit_available = aciState.data_credit_available + aciEvt->params.data_credit.credit;
 				DLOG(F("ACI_EVT_DATA_CREDIT"));
 				DLOG(aciState.data_credit_available,DEC);
-				ack=1;
+				ack = true;
 				break;
 
 			case ACI_EVT_PIPE_ERROR:
@@ -166,38 +207,7 @@ void BlueCapPeripheral::listen() {
 	}
 }
 
-unsigned char BlueCapPeripheral::connected() {
-    return isConnected;
+bool BlueCapPeripheral::txPipesAvailable() {
+	return true;
 }
-
-void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
-	servicesPipeTypeMapping = mapping;
-	numberOfPipes = count;
-}
-
-void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
-	setUpMessages = messages;
-	numberOfSetupMessages = count;
-}
-
-// private methods
-void BlueCapPeripheral::init(uint8_t 											 reqn,
-														 uint8_t 											 rdyn,
-														 hal_aci_data_t*               messages,
-          				 					 int                           messagesCount,
-          				 					 services_pipe_type_mapping_t* mapping,
-          				 					 int                           mappingCount) {
-
-	setUpMessages = messages;
-	numberOfSetupMessages = messagesCount;
-	servicesPipeTypeMapping = mapping;
-	numberOfPipes = mappingCount;
-	isConnected = 0;
-	ack = 0;
-	reqnPin = reqn;
-	rdynPin = rdyn;
-	timingChangeDone = 0;
-}
-
-
 

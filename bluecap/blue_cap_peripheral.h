@@ -23,7 +23,9 @@ public:
   void begin();
   virtual void loop(){listen();};
 
-  unsigned char connected(void);
+  bool connected(void);
+  bool sendAck(const uint8_t pipe);
+  bool sendNack(const uint8_t pipe, const uint8_t error_code);
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
   void setSetUpMessages(hal_aci_data_t* messages, int count);
@@ -41,9 +43,9 @@ private:
   int                             numberOfPipes;
   hal_aci_data_t*                 setUpMessages;
   int                             numberOfSetupMessages;
-  unsigned char                   isConnected;
-  unsigned char                   ack;
-  unsigned char                   timingChangeDone;
+  bool                            isConnected;
+  bool                            ack;
+  bool                            timingChangeDone;
   uint8_t                         reqnPin;
   uint8_t                         rdynPin;
   aci_state_t                     aciState;
@@ -59,6 +61,8 @@ private:
             int                           mappingCount);
 
   void listen();
+  bool txPipesAvailable();
+
 };
 
 #endif
