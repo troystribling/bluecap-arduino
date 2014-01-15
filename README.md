@@ -1,4 +1,4 @@
-bluecap-device
+bluecap-arduino
 ==============
 
 BLE arduino libraries
