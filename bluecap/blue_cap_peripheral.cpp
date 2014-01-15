@@ -80,6 +80,10 @@ bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 	return lib_aci_send_nack(&aciState, pipe, errorCode);
 }
 
+bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t *value, uint8_t size) {
+	return lib_aci_send_data(pipe, value, size);
+}
+
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
 	servicesPipeTypeMapping = mapping;
 	numberOfPipes = count;
