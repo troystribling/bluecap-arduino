@@ -120,6 +120,8 @@ void BlueCapPeripheral::listen() {
 		switch(aciEvt->evt_opcode) {
 			case ACI_EVT_DEVICE_STARTED:
 				aciState.data_credit_total = aciEvt->params.device_started.credit_available;
+				DLOG(F("Total Credits"));
+				DLOG(aciState.data_credit_total, DEC);
 				switch(aciEvt->params.device_started.device_mode) {
 					case ACI_DEVICE_SETUP:
 						DLOG(F("ACI_DEVICE_SETUP"));
