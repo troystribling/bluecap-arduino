@@ -203,6 +203,7 @@ void BlueCapPeripheral::listen() {
 				DLOG(aciEvt->params.pipe_error.pipe_number, DEC);
 				DLOG(F("Pipe Error Code: 0x"));
 				DLOG(aciEvt->params.pipe_error.error_code, HEX);
+				didReceiveError(aciEvt->params.pipe_error.pipe_number, aciEvt->params.pipe_error.error_code);
 
 				//Increment the credit available as the data packet was not sent
 				aciState.data_credit_available++;

@@ -37,6 +37,7 @@ protected:
   virtual void didDisconnect(){};
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
+  virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};
 
 private:
 
