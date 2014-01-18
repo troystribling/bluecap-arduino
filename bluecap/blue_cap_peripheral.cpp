@@ -6,9 +6,6 @@
 #include "nordic/aci_setup.h"
 #include "dlog.h"
 
-#undef PROGMEM
-#define PROGMEM __attribute__(( section(".progmem.data") ))
-
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t reqn, uint8_t rdyn) {
 	init(reqn, rdyn, NULL, 0, NULL, 0);
