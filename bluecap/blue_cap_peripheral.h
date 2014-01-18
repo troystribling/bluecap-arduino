@@ -27,6 +27,7 @@ public:
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
   bool sendData(uint8_t pipe, uint8_t *value, uint8_t size);
+  bool getBatteryLevel();
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
   void setSetUpMessages(hal_aci_data_t* messages, int count);
