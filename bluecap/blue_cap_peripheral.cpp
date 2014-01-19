@@ -70,19 +70,50 @@ bool BlueCapPeripheral::connected() {
 }
 
 bool BlueCapPeripheral::sendAck(uint8_t pipe) {
-	return lib_aci_send_ack(&aciState, pipe);
+	bool status = false;
+	if (isPipeAvailable(pipe)) {
+		status = lib_aci_send_ack(&aciState, pipe);
+	}
+	if (status) {
+		DLOG(F("ACK successful over pipe:"));
+  } else {
+    DLOG(F("ACK failed over pipe:"));
+  }
+	DLOG(pipe, HEX);
+	return status;
 }
 
 bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
-	return lib_aci_send_nack(&aciState, pipe, errorCode);
+	bool status = false;
+	if (isPipeAvailable(pipe)) {
+		 status = lib_aci_send_nack(&aciState, pipe, errorCode);
+	}
+	if (status) {
+		DLOG(F("NACK successful over pipe:"));
+  } else {
+    DLOG(F("NACK failed over pipe:"));
+  }
+	DLOG(pipe, HEX);
+	return status;
 }
 
 bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
-	DLOG(F("sendData over pipe:"));
+	bool status = false;
+	if (isPipeAvailable(pipe)) {
+		status = lib_aci_send_data(pipe, value, size);
+	}
+	if (status) {
+		DLOG(F("sendData successful over pipe:"));
+		decrementCredit();
+		ack = false;
+		while(!ack){listen();}
+	} else {
+		DLOG(F("sendData failed over pipe:"));
+	}
 	DLOG(pipe, HEX);
 	DLOG(F("size:"));
 	DLOG(size, DEC);
-	return lib_aci_send_data(pipe, value, size);
+	return status;
 }
 
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
@@ -125,7 +156,7 @@ void BlueCapPeripheral::listen() {
 		switch(aciEvt->evt_opcode) {
 			case ACI_EVT_DEVICE_STARTED:
 				aciState.data_credit_total = aciEvt->params.device_started.credit_available;
-				DLOG(F("Total Credits"));
+				DLOG(F("Total credits"));
 				DLOG(aciState.data_credit_total, DEC);
 				switch(aciEvt->params.device_started.device_mode) {
 					case ACI_DEVICE_SETUP:
@@ -164,7 +195,7 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
-				if ((txPipesAvailable() == 1) && (timingChangeDone == false)) {
+				if (areAllPipesAvailable() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
 					timingChangeDone = true;
 				}
@@ -198,28 +229,42 @@ void BlueCapPeripheral::listen() {
 			case ACI_EVT_DATA_CREDIT:
 				aciState.data_credit_available = aciState.data_credit_available + aciEvt->params.data_credit.credit;
 				DLOG(F("ACI_EVT_DATA_CREDIT"));
-				DLOG(aciState.data_credit_available,DEC);
+				DLOG(aciState.data_credit_available, DEC);
 				ack = true;
 				break;
 
 			case ACI_EVT_PIPE_ERROR:
-				//See the appendix in the nRF8001 Product Specication for details on the error codes
 				DLOG(F("ACI_EVT_PIPE_ERROR: Pipe #:"));
 				DLOG(aciEvt->params.pipe_error.pipe_number, DEC);
 				DLOG(F("Pipe Error Code: 0x"));
 				DLOG(aciEvt->params.pipe_error.error_code, HEX);
 				didReceiveError(aciEvt->params.pipe_error.pipe_number, aciEvt->params.pipe_error.error_code);
-
-				//Increment the credit available as the data packet was not sent
-				aciState.data_credit_available++;
-				DLOG(F("Data Credit available:"));
-				DLOG(aciState.data_credit_available,DEC);
+				incrementCredit();
 				break;
 		}
 	}
 }
 
-bool BlueCapPeripheral::txPipesAvailable() {
-	return true;
+bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
+	bool status = lib_aci_is_pipe_available(&aciState, pipe);
+	if (status) {
+		DLOG(F("Pipe available:"));
+	} else {
+		DLOG(F("Pipe unavailable:"));
+	}
+	DLOG(pipe, HEX);
+	return status;
+}
+
+void BlueCapPeripheral::incrementCredit() {
+	aciState.data_credit_available++;
+	DLOG(F("Data Credit available:"));
+	DLOG(aciState.data_credit_available,DEC);
+}
+
+void BlueCapPeripheral::decrementCredit() {
+	aciState.data_credit_available--;
+	DLOG(F("Data Credit available:"));
+	DLOG(aciState.data_credit_available,DEC);
 }
 

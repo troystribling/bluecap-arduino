@@ -22,6 +22,7 @@ public:
 
   void begin();
   virtual void loop(){listen();};
+  virtual bool areAllPipesAvailable() = 0;
 
   bool connected(void);
   bool sendAck(const uint8_t pipe);
@@ -39,6 +40,8 @@ protected:
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
   virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};
+
+  bool isPipeAvailable(uint8_t pipe);
 
 private:
 
@@ -65,8 +68,8 @@ private:
             int                           mappingCount);
 
   void listen();
-  bool txPipesAvailable();
-
+  void incrementCredit();
+  void decrementCredit();
 };
 
 #endif

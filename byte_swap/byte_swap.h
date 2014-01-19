@@ -5,7 +5,8 @@
 
 extern "C" {
 
-  uint16_t uint16BigToLittleEndian(uint16_t data);
+  uint16_t uint16BigToHost(uint16_t bigVal);
+  uint16_t uint16LittleToHost(uint16_t littleVal);
 
 }
 
