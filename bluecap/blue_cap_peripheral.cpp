@@ -72,24 +72,31 @@ bool BlueCapPeripheral::connected() {
 bool BlueCapPeripheral::sendAck(uint8_t pipe) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
+		waitForCredit();
 		status = lib_aci_send_ack(&aciState, pipe);
 	}
 	if (status) {
 		DLOG(F("ACK successful over pipe:"));
+		DLOG(pipe, HEX);
+		decrementCredit();
+		waitForAck();
   } else {
     DLOG(F("ACK failed over pipe:"));
-  }
-	DLOG(pipe, HEX);
+ 		DLOG(pipe, HEX);
+ }
 	return status;
 }
 
 bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
+		waitForCredit();
 		 status = lib_aci_send_nack(&aciState, pipe, errorCode);
 	}
 	if (status) {
 		DLOG(F("NACK successful over pipe:"));
+		decrementCredit();
+		waitForAck();
   } else {
     DLOG(F("NACK failed over pipe:"));
   }
@@ -100,19 +107,20 @@ bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
+		waitForCredit();
 		status = lib_aci_send_data(pipe, value, size);
 	}
 	if (status) {
 		DLOG(F("sendData successful over pipe:"));
+		DLOG(pipe, HEX);
+		DLOG(F("size:"));
+		DLOG(size, DEC);
 		decrementCredit();
-		ack = false;
-		while(!ack){listen();}
+		waitForAck();
 	} else {
 		DLOG(F("sendData failed over pipe:"));
+		DLOG(pipe, HEX);
 	}
-	DLOG(pipe, HEX);
-	DLOG(F("size:"));
-	DLOG(size, DEC);
 	return status;
 }
 
@@ -268,3 +276,11 @@ void BlueCapPeripheral::decrementCredit() {
 	DLOG(aciState.data_credit_available,DEC);
 }
 
+void BlueCapPeripheral::waitForCredit() {
+	while(aciState.data_credit_available == 0){listen();}
+}
+
+void BlueCapPeripheral::waitForAck() {
+		ack = false;
+		while(!ack){listen();}
+}

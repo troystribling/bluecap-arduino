@@ -70,6 +70,8 @@ private:
   void listen();
   void incrementCredit();
   void decrementCredit();
+  void waitForCredit();
+  void waitForAck();
 };
 
 #endif
