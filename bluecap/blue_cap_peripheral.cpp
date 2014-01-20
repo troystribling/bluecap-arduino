@@ -195,7 +195,7 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
-				if (areAllPipesAvailable() && (timingChangeDone == false)) {
+				if (arePipesAvailable() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
 					timingChangeDone = true;
 				}
