@@ -7,24 +7,12 @@
 #include "dlog.h"
 
 // public methods
-BlueCapPeripheral::BlueCapPeripheral(uint8_t reqn, uint8_t rdyn) {
-	init(reqn, rdyn, NULL, 0, NULL, 0);
+BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
+	init(_reqnPin, _rdynPin, false);
 }
 
-BlueCapPeripheral::BlueCapPeripheral(uint8_t 					reqn,
-														 				 uint8_t 				 	rdyn,
-														 				 hal_aci_data_t* 	messages,
-          			 										 int             	messagesCount) {
-	init(reqn, rdyn, messages, messagesCount, NULL, 0);
-}
-
-BlueCapPeripheral::BlueCapPeripheral(uint8_t 											 reqn,
-														 				 uint8_t 				 							 rdyn,
-														 				 hal_aci_data_t*               messages,
-          			 										 int                           messagesCount,
-          			 										 services_pipe_type_mapping_t* mapping,
-          			 										 int                           mappingCount) {
-	init(reqn, rdyn, messages, messagesCount, mapping, mappingCount);
+BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
+	init(_reqnPin, _rdynPin, _bond);
 }
 
 BlueCapPeripheral::~BlueCapPeripheral() {
@@ -78,7 +66,6 @@ bool BlueCapPeripheral::sendAck(uint8_t pipe) {
 	if (status) {
 		DLOG(F("ACK successful over pipe:"));
 		DLOG(pipe, HEX);
-		decrementCredit();
 		waitForAck();
   } else {
     DLOG(F("ACK failed over pipe:"));
@@ -95,7 +82,6 @@ bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 	}
 	if (status) {
 		DLOG(F("NACK successful over pipe:"));
-		decrementCredit();
 		waitForAck();
   } else {
     DLOG(F("NACK failed over pipe:"));
@@ -115,7 +101,6 @@ bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
 		DLOG(pipe, HEX);
 		DLOG(F("size:"));
 		DLOG(size, DEC);
-		decrementCredit();
 		waitForAck();
 	} else {
 		DLOG(F("sendData failed over pipe:"));
@@ -139,21 +124,17 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 }
 
 // private methods
-void BlueCapPeripheral::init(uint8_t 											 reqn,
-														 uint8_t 											 rdyn,
-														 hal_aci_data_t*               messages,
-          				 					 int                           messagesCount,
-          				 					 services_pipe_type_mapping_t* mapping,
-          				 					 int                           mappingCount) {
+void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
 
-	setUpMessages = messages;
-	numberOfSetupMessages = messagesCount;
-	servicesPipeTypeMapping = mapping;
-	numberOfPipes = mappingCount;
+	setUpMessages = NULL;
+	numberOfSetupMessages = 0;
+	servicesPipeTypeMapping = NULL;
+	numberOfPipes = 0;
 	isConnected = false;
 	ack = false;
-	reqnPin = reqn;
-	rdynPin = rdyn;
+	reqnPin = _reqnPin;
+	rdynPin = _rdynPin;
+	bond = _bond;
 	timingChangeDone = false;
 }
 
@@ -200,6 +181,10 @@ void BlueCapPeripheral::listen() {
 				didConnect();
 				lib_aci_device_version();
 				break;
+
+      case ACI_EVT_BOND_STATUS:
+        aciState.bonded = aciEvt->params.bond_status.status_code;
+        break;
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
@@ -281,6 +266,7 @@ void BlueCapPeripheral::waitForCredit() {
 }
 
 void BlueCapPeripheral::waitForAck() {
+		decrementCredit();
 		ack = false;
 		while(!ack){listen();}
 }

@@ -7,17 +7,9 @@ class BlueCapPeripheral {
 
 public:
 
-  BlueCapPeripheral(uint8_t reqn, uint8_t rdyn);
-  BlueCapPeripheral(uint8_t         reqn,
-                    uint8_t         rdyn,
-                    hal_aci_data_t* messages,
-                    int             messagesCount);
-  BlueCapPeripheral(uint8_t                       reqn,
-                    uint8_t                       rdyn,
-                    hal_aci_data_t*               messages,
-                    int                           messagesCount,
-                    services_pipe_type_mapping_t* mapping,
-                    int                           mappingCount);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond);
+
   ~BlueCapPeripheral();
 
   void begin();
@@ -52,6 +44,7 @@ private:
   bool                            isConnected;
   bool                            ack;
   bool                            timingChangeDone;
+  bool                            bond;
   uint8_t                         reqnPin;
   uint8_t                         rdynPin;
   uint8_t*                        rxPipes;
@@ -60,12 +53,7 @@ private:
 
 private:
 
-  void init(uint8_t                       reqn,
-            uint8_t                       rdyn,
-            hal_aci_data_t*               messages,
-            int                           messagesCount,
-            services_pipe_type_mapping_t* mapping,
-            int                           mappingCount);
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond);
 
   void listen();
   void incrementCredit();
