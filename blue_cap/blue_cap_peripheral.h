@@ -12,7 +12,7 @@ public:
 
   ~BlueCapPeripheral();
 
-  void begin();
+  virtual void begin(){setup();};
   virtual void loop(){listen();};
 
   bool connected(void);
@@ -56,6 +56,7 @@ private:
   void init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond);
 
   void listen();
+  void setup();
   void incrementCredit();
   void decrementCredit();
   void waitForCredit();

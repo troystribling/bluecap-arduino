@@ -18,41 +18,6 @@ BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _b
 BlueCapPeripheral::~BlueCapPeripheral() {
 }
 
-void BlueCapPeripheral::begin() {
-	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
-	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
-	aciState.aci_setup_info.setup_msgs         					= setUpMessages;
-	aciState.aci_setup_info.num_setup_msgs     					= numberOfSetupMessages;
-
-	aciState.aci_pins.board_name = REDBEARLAB_SHIELD_V1_1;
-	aciState.aci_pins.reqn_pin   = reqnPin;
-	aciState.aci_pins.rdyn_pin   = rdynPin;
-	aciState.aci_pins.mosi_pin   = MOSI;
-	aciState.aci_pins.miso_pin   = MISO;
-	aciState.aci_pins.sck_pin    = SCK;
-
-#if defined(__SAM3X8E__)
-	aciState.aci_pins.spi_clock_divider     = 84;
-#else
-	aciState.aci_pins.spi_clock_divider     = SPI_CLOCK_DIV8;
-#endif
-
-	aciState.aci_pins.reset_pin             = UNUSED;
-	aciState.aci_pins.active_pin            = UNUSED;
-	aciState.aci_pins.optional_chip_sel_pin = UNUSED;
-
-	aciState.aci_pins.interface_is_interrupt	= false;
-	aciState.aci_pins.interrupt_number			  = 1;
-
-	//Turn debug printing on for the ACI Commands and Events to be printed on the Serial
-	lib_aci_debug_print(true);
-
-	/*We reset the nRF8001 here by toggling the RESET line connected to the nRF8001
-	and initialize the data structures required to setup the nRF8001*/
-	lib_aci_init(&aciState);
-	delay(100);
-}
-
 bool BlueCapPeripheral::connected() {
     return isConnected;
 }
@@ -236,6 +201,41 @@ void BlueCapPeripheral::listen() {
 				break;
 		}
 	}
+}
+
+void BlueCapPeripheral::setup() {
+	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
+	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
+	aciState.aci_setup_info.setup_msgs         					= setUpMessages;
+	aciState.aci_setup_info.num_setup_msgs     					= numberOfSetupMessages;
+
+	aciState.aci_pins.board_name = REDBEARLAB_SHIELD_V1_1;
+	aciState.aci_pins.reqn_pin   = reqnPin;
+	aciState.aci_pins.rdyn_pin   = rdynPin;
+	aciState.aci_pins.mosi_pin   = MOSI;
+	aciState.aci_pins.miso_pin   = MISO;
+	aciState.aci_pins.sck_pin    = SCK;
+
+#if defined(__SAM3X8E__)
+	aciState.aci_pins.spi_clock_divider     = 84;
+#else
+	aciState.aci_pins.spi_clock_divider     = SPI_CLOCK_DIV8;
+#endif
+
+	aciState.aci_pins.reset_pin             = UNUSED;
+	aciState.aci_pins.active_pin            = UNUSED;
+	aciState.aci_pins.optional_chip_sel_pin = UNUSED;
+
+	aciState.aci_pins.interface_is_interrupt	= false;
+	aciState.aci_pins.interrupt_number			  = 1;
+
+	//Turn debug printing on for the ACI Commands and Events to be printed on the Serial
+	lib_aci_debug_print(true);
+
+	/*We reset the nRF8001 here by toggling the RESET line connected to the nRF8001
+	and initialize the data structures required to setup the nRF8001*/
+	lib_aci_init(&aciState);
+	delay(100);
 }
 
 bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
