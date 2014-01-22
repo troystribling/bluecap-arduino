@@ -29,13 +29,12 @@ bool BlueCapPeripheral::sendAck(uint8_t pipe) {
 		status = lib_aci_send_ack(&aciState, pipe);
 	}
 	if (status) {
-		DLOG(F("ACK successful over pipe:"));
-		DLOG(pipe, HEX);
 		waitForAck();
+		DLOG(F("ACK successful over pipe:"));
   } else {
     DLOG(F("ACK failed over pipe:"));
- 		DLOG(pipe, HEX);
  }
+	DLOG(pipe, HEX);
 	return status;
 }
 
@@ -43,11 +42,11 @@ bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
 		waitForCredit();
-		 status = lib_aci_send_nack(&aciState, pipe, errorCode);
+		status = lib_aci_send_nack(&aciState, pipe, errorCode);
 	}
 	if (status) {
-		DLOG(F("NACK successful over pipe:"));
 		waitForAck();
+		DLOG(F("NACK successful over pipe:"));
   } else {
     DLOG(F("NACK failed over pipe:"));
   }
@@ -62,25 +61,39 @@ bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
 		status = lib_aci_send_data(pipe, value, size);
 	}
 	if (status) {
-		DLOG(F("sendData successful over pipe:"));
-		DLOG(pipe, HEX);
-		DLOG(F("size:"));
-		DLOG(size, DEC);
 		waitForAck();
+		DLOG(F("sendData successful over pipe:"));
 	} else {
 		DLOG(F("sendData failed over pipe:"));
-		DLOG(pipe, HEX);
 	}
+		DLOG(pipe, HEX);
 	return status;
 }
 
-void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
-	servicesPipeTypeMapping = mapping;
-	numberOfPipes = count;
+bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t *value, uint8_t size) {
+	bool status = false;
+	// if (isPipeAvailable(pipe)) {
+		waitForCredit();
+		status = lib_aci_set_local_data(&aciState, pipe, value, size);
+	// }
+	if (status) {
+		waitForAck();
+		DLOG(F("setData successful over pipe:"));
+	} else {
+		DLOG(F("sendData failed over pipe:"));
+	}
+	DLOG(pipe, HEX);
+	return status;
 }
 
 bool BlueCapPeripheral::getBatteryLevel() {
 	return lib_aci_get_battery_level();
+}
+
+
+void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
+	servicesPipeTypeMapping = mapping;
+	numberOfPipes = count;
 }
 
 void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
