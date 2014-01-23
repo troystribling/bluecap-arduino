@@ -71,11 +71,8 @@ bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
 }
 
 bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t *value, uint8_t size) {
-	bool status = false;
-	// if (isPipeAvailable(pipe)) {
-		waitForCredit();
-		status = lib_aci_set_local_data(&aciState, pipe, value, size);
-	// }
+	waitForCredit();
+	bool status = lib_aci_set_local_data(&aciState, pipe, value, size);
 	if (status) {
 		waitForAck();
 		DLOG(F("setData successful over pipe:"));
@@ -86,10 +83,22 @@ bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t *value, uint8_t size) {
 	return status;
 }
 
+bool BlueCapPeripheral::requestData(uint8_t pipe) {
+	waitForCredit();
+	bool status = lib_aci_request_data(&aciState, pipe);
+	if (status) {
+		waitForAck();
+		DLOG(F("requestData successful over pipe:"));
+	} else {
+		DLOG(F("requestData failed over pipe:"));
+	}
+	DLOG(pipe, HEX);
+	return status;
+}
+
 bool BlueCapPeripheral::getBatteryLevel() {
 	return lib_aci_get_battery_level();
 }
-
 
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
 	servicesPipeTypeMapping = mapping;
@@ -103,7 +112,6 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 
 // private methods
 void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
-
 	setUpMessages = NULL;
 	numberOfSetupMessages = 0;
 	servicesPipeTypeMapping = NULL;
@@ -166,6 +174,7 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
+				didReceiveReady();
 				if (arePipesAvailable() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
 					timingChangeDone = true;
@@ -189,6 +198,7 @@ void BlueCapPeripheral::listen() {
 			case ACI_EVT_DATA_RECEIVED: {
 				int pipe = aciEvt->params.data_received.rx_data.pipe_number;
 				int length = aciEvt->len - 2;
+				ack = true;
 				DLOG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
 				DLOG(pipe, HEX);
 				DLOG(F("length:"));
@@ -205,6 +215,7 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_PIPE_ERROR:
+				ack = true;
 				DLOG(F("ACI_EVT_PIPE_ERROR: Pipe #:"));
 				DLOG(aciEvt->params.pipe_error.pipe_number, DEC);
 				DLOG(F("Pipe Error Code: 0x"));
