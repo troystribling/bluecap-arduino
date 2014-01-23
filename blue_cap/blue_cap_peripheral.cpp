@@ -54,11 +54,11 @@ bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 	return status;
 }
 
-bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
+bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t valueSize) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
 		waitForCredit();
-		status = lib_aci_send_data(pipe, value, size);
+		status = lib_aci_send_data(pipe, value, valueSize);
 	}
 	if (status) {
 		waitForAck();
@@ -70,27 +70,28 @@ bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
 	return status;
 }
 
-bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t *value, uint8_t size) {
-	waitForCredit();
-	bool status = lib_aci_set_local_data(&aciState, pipe, value, size);
-	if (status) {
-		waitForAck();
-		DLOG(F("setData successful over pipe:"));
-	} else {
-		DLOG(F("sendData failed over pipe:"));
-	}
-	DLOG(pipe, HEX);
-	return status;
-}
-
 bool BlueCapPeripheral::requestData(uint8_t pipe) {
 	waitForCredit();
-	bool status = lib_aci_request_data(&aciState, pipe);
+	bool status = true;
+	if (isPipeAvailable(pipe)) {
+		status = lib_aci_request_data(&aciState, pipe);
+	}
 	if (status) {
 		waitForAck();
 		DLOG(F("requestData successful over pipe:"));
 	} else {
 		DLOG(F("requestData failed over pipe:"));
+	}
+	DLOG(pipe, HEX);
+	return status;
+}
+
+bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t valueSize) {
+	bool status = lib_aci_set_local_data(&aciState, pipe, value, valueSize);
+	if (status) {
+		DLOG(F("setData successful over pipe:"));
+	} else {
+		DLOG(F("sendData failed over pipe:"));
 	}
 	DLOG(pipe, HEX);
 	return status;
@@ -174,8 +175,8 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DLOG(F("ACI_EVT_PIPE_STATUS"));
-				didReceiveReady();
-				if (arePipesAvailable() && (timingChangeDone == false)) {
+				didReceiveStatusChange();
+				if (doTimingChange() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
 					timingChangeDone = true;
 				}

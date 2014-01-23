@@ -18,9 +18,9 @@ public:
   bool connected(void);
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
-  bool sendData(uint8_t pipe, uint8_t *value, uint8_t size);
-  bool setData(uint8_t pipe, uint8_t *value, uint8_t size);
+  bool sendData(uint8_t pipe, uint8_t *value, uint8_t valueSize);
   bool requestData(uint8_t pipe);
+  bool setData(uint8_t pipe, uint8_t *value, uint8_t valueSize);
   bool getBatteryLevel();
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
@@ -33,10 +33,10 @@ protected:
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
   virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};
-  virtual void didReceiveReady(){};
+  virtual void didReceiveStatusChange(){};
 
   bool isPipeAvailable(uint8_t pipe);
-  virtual bool arePipesAvailable() = 0;
+  virtual bool doTimingChange() = 0;
 
 private:
 
