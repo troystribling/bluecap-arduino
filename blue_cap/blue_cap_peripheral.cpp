@@ -186,6 +186,7 @@ void BlueCapPeripheral::listen() {
 					DLOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
 					while (1);
 				} else {
+					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode, aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 2);
 				}
 				break;
 

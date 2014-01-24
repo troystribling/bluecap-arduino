@@ -27,6 +27,7 @@ public:
 protected:
 
   virtual void didReceiveData(uint8_t characteristicId, uint8_t* data, uint8_t length){};
+  virtual void didReceiveCommandResponse(uint8_t commandId, uint8_t* data, uint8_t length){};
   virtual void didDisconnect(){};
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
