@@ -1,5 +1,6 @@
 #include <SPI.h>
 
+#include <avr/eeprom.h>
 #include "blue_cap_peripheral.h"
 #include "nordic/boards.h"
 #include "nordic/lib_aci.h"
@@ -98,9 +99,26 @@ bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t valueSize)
 }
 
 bool BlueCapPeripheral::getBatteryLevel() {
-	return lib_aci_get_battery_level();
+	bool status = lib_aci_get_battery_level();
+	if (status) {
+		DLOG(F("getBatteryLevel successful"));
+	} else {
+		DLOG(F("getBatteryLevel failed"));
+	}
+	return status;
 }
 
+bool BlueCapPeripheral::getTemperature() {
+	bool status = lib_aci_get_temperature();
+	if (status) {
+		DLOG(F("getTermperartue successful"));
+	} else {
+		DLOG(F("getTermperartue failed"));
+	}
+	return status;
+}
+
+// protected
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
 	servicesPipeTypeMapping = mapping;
 	numberOfPipes = count;
@@ -109,6 +127,21 @@ void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* 
 void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 	setUpMessages = messages;
 	numberOfSetupMessages = count;
+}
+
+void BlueCapPeripheral::waitForEEPROM() {
+  while (!eeprom_is_ready());
+}
+
+bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
+	bool status = lib_aci_is_pipe_available(&aciState, pipe);
+	if (status) {
+		DLOG(F("Pipe available:"));
+	} else {
+		DLOG(F("Pipe unavailable:"));
+	}
+	DLOG(pipe, HEX);
+	return status;
 }
 
 // private methods
@@ -261,17 +294,6 @@ void BlueCapPeripheral::setup() {
 	and initialize the data structures required to setup the nRF8001*/
 	lib_aci_init(&aciState);
 	delay(100);
-}
-
-bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
-	bool status = lib_aci_is_pipe_available(&aciState, pipe);
-	if (status) {
-		DLOG(F("Pipe available:"));
-	} else {
-		DLOG(F("Pipe unavailable:"));
-	}
-	DLOG(pipe, HEX);
-	return status;
 }
 
 void BlueCapPeripheral::incrementCredit() {

@@ -22,9 +22,7 @@ public:
   bool requestData(uint8_t pipe);
   bool setData(uint8_t pipe, uint8_t *value, uint8_t valueSize);
   bool getBatteryLevel();
-
-  void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
-  void setSetUpMessages(hal_aci_data_t* messages, int count);
+  bool getTemperature();
 
 protected:
 
@@ -34,6 +32,10 @@ protected:
   virtual void didStartAdvertising(){};
   virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};
   virtual void didReceiveStatusChange(){};
+
+  void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
+  void setSetUpMessages(hal_aci_data_t* messages, int count);
+  void waitForEEPROM();
 
   bool isPipeAvailable(uint8_t pipe);
   virtual bool doTimingChange() = 0;
