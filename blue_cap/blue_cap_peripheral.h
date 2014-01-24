@@ -35,7 +35,6 @@ protected:
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
   void setSetUpMessages(hal_aci_data_t* messages, int count);
-  void waitForEEPROM();
 
   bool isPipeAvailable(uint8_t pipe);
   virtual bool doTimingChange() = 0;
@@ -66,6 +65,8 @@ private:
   void decrementCredit();
   void waitForCredit();
   void waitForAck();
+  void waitForEEPROM();
+
 };
 
 #endif

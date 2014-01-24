@@ -129,10 +129,6 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 	numberOfSetupMessages = count;
 }
 
-void BlueCapPeripheral::waitForEEPROM() {
-  while (!eeprom_is_ready());
-}
-
 bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
 	bool status = lib_aci_is_pipe_available(&aciState, pipe);
 	if (status) {
@@ -294,6 +290,7 @@ void BlueCapPeripheral::setup() {
 	and initialize the data structures required to setup the nRF8001*/
 	lib_aci_init(&aciState);
 	delay(100);
+	waitForEEPROM();
 }
 
 void BlueCapPeripheral::incrementCredit() {
@@ -316,4 +313,8 @@ void BlueCapPeripheral::waitForAck() {
 		decrementCredit();
 		ack = false;
 		while(!ack){listen();}
+}
+
+void BlueCapPeripheral::waitForEEPROM() {
+  while (!eeprom_is_ready());
 }
