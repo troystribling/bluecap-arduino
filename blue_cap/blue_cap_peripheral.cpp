@@ -55,11 +55,11 @@ bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
 	return status;
 }
 
-bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t valueSize) {
+bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
 		waitForCredit();
-		status = lib_aci_send_data(pipe, value, valueSize);
+		status = lib_aci_send_data(pipe, value, size);
 	}
 	if (status) {
 		waitForAck();
@@ -87,8 +87,8 @@ bool BlueCapPeripheral::requestData(uint8_t pipe) {
 	return status;
 }
 
-bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t valueSize) {
-	bool status = lib_aci_set_local_data(&aciState, pipe, value, valueSize);
+bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t size) {
+	bool status = lib_aci_set_local_data(&aciState, pipe, value, size);
 	if (status) {
 		DLOG(F("setData successful over pipe:"));
 	} else {
@@ -99,21 +99,49 @@ bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t valueSize)
 }
 
 bool BlueCapPeripheral::getBatteryLevel() {
+	waitForCmdComplete();
 	bool status = lib_aci_get_battery_level();
 	if (status) {
 		DLOG(F("getBatteryLevel successful"));
 	} else {
 		DLOG(F("getBatteryLevel failed"));
+		cmdComplete = true;
 	}
 	return status;
 }
 
 bool BlueCapPeripheral::getTemperature() {
+	waitForCmdComplete();
 	bool status = lib_aci_get_temperature();
 	if (status) {
-		DLOG(F("getTermperartue successful"));
+		DLOG(F("getTemperartue successful"));
 	} else {
-		DLOG(F("getTermperartue failed"));
+		DLOG(F("getTemperartue failed"));
+		cmdComplete = true;
+	}
+	return status;
+}
+
+bool BlueCapPeripheral::getDeviceVersion() {
+	waitForCmdComplete();
+	bool status = lib_aci_device_version();
+	if (status) {
+		DLOG(F("getDeviceVersion successful"));
+	} else {
+		DLOG(F("getDeviceVersion failed"));
+		cmdComplete = true;
+	}
+	return status;
+}
+
+bool BlueCapPeripheral::getAddress() {
+	waitForCmdComplete();
+	bool status = lib_aci_get_address();
+	if (status) {
+		DLOG(F("getAddress successful"));
+	} else {
+		DLOG(F("getAddress failed"));
+		cmdComplete = true;
 	}
 	return status;
 }
@@ -152,6 +180,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
 	rdynPin = _rdynPin;
 	bond = _bond;
 	timingChangeDone = false;
+	cmdComplete = true;
 }
 
 void BlueCapPeripheral::listen() {
@@ -186,8 +215,10 @@ void BlueCapPeripheral::listen() {
 					DLOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
 					while (1);
 				} else {
-					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode, aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 2);
+					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode,
+						aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
 				}
+				cmdComplete = true;
 				break;
 
 			case ACI_EVT_CONNECTED:
@@ -228,13 +259,13 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_DATA_RECEIVED: {
 				int pipe = aciEvt->params.data_received.rx_data.pipe_number;
-				int length = aciEvt->len - 2;
+				int size = aciEvt->len - 2;
 				ack = true;
 				DLOG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
 				DLOG(pipe, HEX);
-				DLOG(F("length:"));
-				DLOG(length, DEC);
-				didReceiveData(pipe, aciEvt->params.data_received.rx_data.aci_data, length);
+				DLOG(F("size:"));
+				DLOG(size, DEC);
+				didReceiveData(pipe, aciEvt->params.data_received.rx_data.aci_data, size);
 				break;
 			}
 
@@ -317,5 +348,10 @@ void BlueCapPeripheral::waitForAck() {
 }
 
 void BlueCapPeripheral::waitForEEPROM() {
-  while (!eeprom_is_ready());
+  while(!eeprom_is_ready());
+}
+
+void BlueCapPeripheral::waitForCmdComplete () {
+	while(!cmdComplete){listen();};
+	cmdComplete = false;
 }

@@ -18,16 +18,18 @@ public:
   bool connected(void);
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
-  bool sendData(uint8_t pipe, uint8_t *value, uint8_t valueSize);
+  bool sendData(uint8_t pipe, uint8_t *value, uint8_t size);
   bool requestData(uint8_t pipe);
-  bool setData(uint8_t pipe, uint8_t *value, uint8_t valueSize);
+  bool setData(uint8_t pipe, uint8_t *value, uint8_t size);
   bool getBatteryLevel();
   bool getTemperature();
+  bool getDeviceVersion();
+  bool getAddress();
 
 protected:
 
-  virtual void didReceiveData(uint8_t characteristicId, uint8_t* data, uint8_t length){};
-  virtual void didReceiveCommandResponse(uint8_t commandId, uint8_t* data, uint8_t length){};
+  virtual void didReceiveData(uint8_t characteristicId, uint8_t* data, uint8_t size){};
+  virtual void didReceiveCommandResponse(uint8_t commandId, uint8_t* data, uint8_t size){};
   virtual void didDisconnect(){};
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
@@ -50,6 +52,7 @@ private:
   bool                            ack;
   bool                            timingChangeDone;
   bool                            bond;
+  bool                            cmdComplete;
   uint8_t                         reqnPin;
   uint8_t                         rdynPin;
   uint8_t*                        rxPipes;
@@ -67,6 +70,7 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForEEPROM();
+  void waitForCmdComplete();
 
 };
 
