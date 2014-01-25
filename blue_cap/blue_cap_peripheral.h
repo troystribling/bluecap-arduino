@@ -15,12 +15,12 @@ public:
   virtual void begin(){setup();};
   virtual void loop(){listen();};
 
-  bool connected(void);
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
   bool sendData(uint8_t pipe, uint8_t *value, uint8_t size);
   bool requestData(uint8_t pipe);
   bool setData(uint8_t pipe, uint8_t *value, uint8_t size);
+  bool setTxPower(aci_device_output_power_t txPower);
   bool getBatteryLevel();
   bool getTemperature();
   bool getDeviceVersion();

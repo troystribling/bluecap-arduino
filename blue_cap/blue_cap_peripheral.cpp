@@ -19,10 +19,6 @@ BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _b
 BlueCapPeripheral::~BlueCapPeripheral() {
 }
 
-bool BlueCapPeripheral::connected() {
-    return isConnected;
-}
-
 bool BlueCapPeripheral::sendAck(uint8_t pipe) {
 	bool status = false;
 	if (isPipeAvailable(pipe)) {
@@ -95,6 +91,18 @@ bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t size) {
 		DLOG(F("sendData failed over pipe:"));
 	}
 	DLOG(pipe, HEX);
+	return status;
+}
+
+bool BlueCapPeripheral::setTxPower(aci_device_output_power_t txPower) {
+	waitForCmdComplete();
+	bool status = lib_aci_set_tx_power(txPower);
+	if (status) {
+		DLOG(F("setTxPower successful"));
+	} else {
+		DLOG(F("setTxPower failed"));
+		cmdComplete = true;
+	}
 	return status;
 }
 
