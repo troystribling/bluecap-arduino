@@ -1,5 +1,4 @@
 #include <SPI.h>
-
 #include <avr/eeprom.h>
 #include <EEPROM.h>
 #include "blue_cap_peripheral.h"
@@ -378,15 +377,15 @@ void BlueCapPeripheral::writeBondData(aci_evt_t* evt) {
   }
 }
 
-aci_status_code_t BlueCapPeriphearl::restoreBondData(uint8_t eepromStatus, bool* bondedFirstTimeState) {
+aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus, bool* bondedFirstTimeState) {
   aci_evt_t *aciEvt;
   uint16_t addr = eepromOffset + 1;
   uint8_t len = 0;
   uint8_t numDynMsgs = eepromStatus & 0x7F;
 
   while(1) {
-    len = EEPROM.read(eeprom_offset_read);
-    eeprom_offset_read++;
+    len = EEPROM.read(addr);
+    addr++;
     aciCmd.buffer[0] = len;
 
     for (uint8_t i = 1; i <= len; i++) {
@@ -401,18 +400,17 @@ aci_status_code_t BlueCapPeriphearl::restoreBondData(uint8_t eepromStatus, bool*
     }
 
     while (1) {
-      if (lib_aci_event_get(aciState, &aci_data)) {
-        aciEvt = &aci_data.evt;
+      if (lib_aci_event_get(&aciState, &aciData)) {
+        aciEvt = &aciData.evt;
         if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode) {
             DLOG(F("restoreBondData: failed with error: 0x"));
             DLOG(aciEvt->evt_opcode, HEX);
             return ACI_STATUS_ERROR_INTERNAL;
-        }
-        else {
+        } else {
           numDynMsgs--;
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
             *bondedFirstTimeState = false;
-            aciState->bonded = ACI_BOND_STATUS_SUCCESS;
+            aciState.bonded = ACI_BOND_STATUS_SUCCESS;
             return ACI_STATUS_TRANSACTION_COMPLETE;
           }
           if (0 >= numDynMsgs) {
@@ -425,3 +423,4 @@ aci_status_code_t BlueCapPeriphearl::restoreBondData(uint8_t eepromStatus, bool*
       }
     }
   }
+}
