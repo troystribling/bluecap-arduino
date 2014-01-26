@@ -1,6 +1,7 @@
 #include <SPI.h>
 
 #include <avr/eeprom.h>
+#include <EEPROM.h>
 #include "blue_cap_peripheral.h"
 #include "nordic/boards.h"
 #include "nordic/lib_aci.h"
@@ -9,11 +10,11 @@
 
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
-	init(_reqnPin, _rdynPin, false);
+	init(_reqnPin, _rdynPin, false, 0);
 }
 
-BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
-	init(_reqnPin, _rdynPin, _bond);
+BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond, uint16_t _eepromOffset) {
+	init(_reqnPin, _rdynPin, _bond, _eepromOffset);
 }
 
 BlueCapPeripheral::~BlueCapPeripheral() {
@@ -177,7 +178,7 @@ bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
 }
 
 // private methods
-void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
+void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond, uint16_t _eepromOffset) {
 	setUpMessages = NULL;
 	numberOfSetupMessages = 0;
 	servicesPipeTypeMapping = NULL;
@@ -189,6 +190,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond) {
 	bond = _bond;
 	timingChangeDone = false;
 	cmdComplete = true;
+	eepromOffset = _eepromOffset;
 }
 
 void BlueCapPeripheral::listen() {
@@ -363,3 +365,63 @@ void BlueCapPeripheral::waitForCmdComplete () {
 	while(!cmdComplete){listen();};
 	cmdComplete = false;
 }
+
+void BlueCapPeripheral::writeBondData(aci_evt_t* evt) {
+  uint16_t addr = eepromOffset + 1;
+  EEPROM.write(addr, evt->len - 2);
+  eepromOffset++;
+  EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
+  addr++;
+  for (uint8_t i=0; i< (evt->len-3); i++) {
+    EEPROM.write(addr, evt->params.cmd_rsp.params.padding[i]);
+    addr++;
+  }
+}
+
+aci_status_code_t BlueCapPeriphearl::restoreBondData(uint8_t eepromStatus, bool* bondedFirstTimeState) {
+  aci_evt_t *aciEvt;
+  uint16_t addr = eepromOffset + 1;
+  uint8_t len = 0;
+  uint8_t numDynMsgs = eepromStatus & 0x7F;
+
+  while(1) {
+    len = EEPROM.read(eeprom_offset_read);
+    eeprom_offset_read++;
+    aciCmd.buffer[0] = len;
+
+    for (uint8_t i = 1; i <= len; i++) {
+        aciCmd.buffer[i] = EEPROM.read(addr);
+        addr++;
+    }
+    waitForCmdComplete();
+    if (!hal_aci_tl_send(&aciCmd)) {
+      DLOG(F("restoreBondData: failed"));
+      cmdComplete = true;
+      return ACI_STATUS_ERROR_INTERNAL;
+    }
+
+    while (1) {
+      if (lib_aci_event_get(aciState, &aci_data)) {
+        aciEvt = &aci_data.evt;
+        if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode) {
+            DLOG(F("restoreBondData: failed with error: 0x"));
+            DLOG(aciEvt->evt_opcode, HEX);
+            return ACI_STATUS_ERROR_INTERNAL;
+        }
+        else {
+          numDynMsgs--;
+          if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
+            *bondedFirstTimeState = false;
+            aciState->bonded = ACI_BOND_STATUS_SUCCESS;
+            return ACI_STATUS_TRANSACTION_COMPLETE;
+          }
+          if (0 >= numDynMsgs) {
+            return ACI_STATUS_ERROR_INTERNAL;
+          }
+          if (ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status) {
+            break;
+          }
+        }
+      }
+    }
+  }
