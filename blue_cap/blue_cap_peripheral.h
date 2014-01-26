@@ -8,7 +8,8 @@ class BlueCapPeripheral {
 public:
 
   BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin);
-  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond, uint16_t _eepromOffset);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, bool _bond);
 
   ~BlueCapPeripheral();
 
@@ -71,7 +72,6 @@ private:
   void decrementCredit();
   void waitForCredit();
   void waitForAck();
-  void waitForEEPROM();
   void waitForCmdComplete();
   void writeBondData(aci_evt_t* evt);
   aci_status_code_t restoreBondData(uint8_t eepromStatus, bool* bondedFirstTimeState);

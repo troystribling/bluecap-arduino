@@ -1,18 +1,22 @@
 #include <SPI.h>
-#include <avr/eeprom.h>
 #include <EEPROM.h>
-#include "blue_cap_peripheral.h"
 #include "nordic/boards.h"
 #include "nordic/lib_aci.h"
 #include "nordic/aci_setup.h"
 #include "dlog.h"
+
+#include "blue_cap_peripheral.h"
 
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
 	init(_reqnPin, _rdynPin, false, 0);
 }
 
-BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond, uint16_t _eepromOffset) {
+BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset) {
+	init(_reqnPin, _rdynPin, false, _eepromOffset);
+}
+
+BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, bool _bond) {
 	init(_reqnPin, _rdynPin, _bond, _eepromOffset);
 }
 
@@ -331,7 +335,6 @@ void BlueCapPeripheral::setup() {
 	and initialize the data structures required to setup the nRF8001*/
 	lib_aci_init(&aciState);
 	delay(100);
-	waitForEEPROM();
 }
 
 void BlueCapPeripheral::incrementCredit() {
@@ -354,10 +357,6 @@ void BlueCapPeripheral::waitForAck() {
 		decrementCredit();
 		ack = false;
 		while(!ack){listen();}
-}
-
-void BlueCapPeripheral::waitForEEPROM() {
-  while(!eeprom_is_ready());
 }
 
 void BlueCapPeripheral::waitForCmdComplete () {
