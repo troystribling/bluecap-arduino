@@ -194,6 +194,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond, uin
 	timingChangeDone = false;
 	cmdComplete = true;
 	eepromOffset = _eepromOffset;
+	bondedFirstTimeState = true;
 }
 
 void BlueCapPeripheral::listen() {
@@ -212,12 +213,38 @@ void BlueCapPeripheral::listen() {
 							DLOG(F("Error ACI_DEVICE_SETUP"));
 						}
 						break;
-					case ACI_DEVICE_STANDBY:
+					case ACI_DEVICE_STANDBY: {
 						DLOG(F("ACI_DEVICE_STANDBY"));
-						lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-						didStartAdvertising();
-						DLOG(F("Advertising started"));
+						if (bond) {
+					    uint8_t eeprom_status = 0;
+              eeprom_status = EEPROM.read(0);
+              if (eeprom_status != 0x00) {
+                DLOG(F("Previous Bond present. Restoring"));
+                DLOG(F("Using existing bond stored in EEPROM."));
+                DLOG(F("   To delete the bond stored in EEPROM, connect Pin 6 to 3.3v and Reset."));
+                DLOG(F("   Make sure that the bond on the phone/PC is deleted as well."));
+                if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eeprom_status)) {
+                  DLOG(F("Bond restored successfully"));
+                }
+                else {
+                  DLOG(F("Bond restore failed. Delete the bond and try again."));
+                }
+              }
+              if (ACI_BOND_STATUS_SUCCESS != aciState.bonded) {
+                  lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+                  DLOG(F("No Bond present in EEPROM."));
+                  DLOG(F("Advertising started : Waiting to be connected and bonded"));
+                } else {
+                    lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+                    DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
+                }
+						} else {
+							lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+							didStartAdvertising();
+							DLOG(F("Advertising started"));
+						}
 						break;
+					}
 				}
 				break;
 
@@ -235,15 +262,16 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CONNECTED:
+				DLOG(F("ACI_EVT_CONNECTED"));
 				isConnected = true;
 				timingChangeDone = false;
-				DLOG(F("ACI_EVT_CONNECTED"));
 				aciState.data_credit_available = aciState.data_credit_total;
 				didConnect();
 				lib_aci_device_version();
 				break;
 
       case ACI_EVT_BOND_STATUS:
+				DLOG(F("ACI_EVT_BOND_STATUS"));
         aciState.bonded = aciEvt->params.bond_status.status_code;
         break;
 
@@ -328,11 +356,6 @@ void BlueCapPeripheral::setup() {
 	aciState.aci_pins.interface_is_interrupt	= false;
 	aciState.aci_pins.interrupt_number			  = 1;
 
-	//Turn debug printing on for the ACI Commands and Events to be printed on the Serial
-	lib_aci_debug_print(true);
-
-	/*We reset the nRF8001 here by toggling the RESET line connected to the nRF8001
-	and initialize the data structures required to setup the nRF8001*/
 	lib_aci_init(&aciState);
 	delay(100);
 }
@@ -376,7 +399,7 @@ void BlueCapPeripheral::writeBondData(aci_evt_t* evt) {
   }
 }
 
-aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus, bool* bondedFirstTimeState) {
+aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
   aci_evt_t *aciEvt;
   uint16_t addr = eepromOffset + 1;
   uint8_t len = 0;
@@ -408,7 +431,7 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus, bool*
         } else {
           numDynMsgs--;
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
-            *bondedFirstTimeState = false;
+            bondedFirstTimeState = false;
             aciState.bonded = ACI_BOND_STATUS_SUCCESS;
             return ACI_STATUS_TRANSACTION_COMPLETE;
           }
@@ -423,3 +446,37 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus, bool*
     }
   }
 }
+
+bool BlueCapPeripheral::readAndStoreBondData() {
+  bool status = false;
+  aci_evt_t* aciEvt = NULL;
+  uint8_t numDynMsgs = 0;
+
+  lib_aci_read_dynamic_data();
+  numDynMsgs++;
+
+  while (1) {
+    if (true == lib_aci_event_get(&aciState, &aciData)) {
+      aciEvt = &aciData.evt;
+      if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode ) {
+        status = false;
+        break;
+      } else if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
+        writeBondData(aciEvt);
+        EEPROM.write(eepromOffset, 0x80 | numDynMsgs);
+        status = true;
+        break;
+      } else if (!(ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status)) {
+        EEPROM.write(eepromOffset, 0x00);
+        status = false;
+        break;
+      } else {
+        writeBondData(aciEvt);
+        lib_aci_read_dynamic_data();
+        numDynMsgs++;
+      }
+    }
+  }
+  return status;
+}
+

@@ -54,6 +54,7 @@ private:
   bool                            timingChangeDone;
   bool                            bond;
   bool                            cmdComplete;
+  bool                            bondedFirstTimeState;
   uint8_t                         reqnPin;
   uint8_t                         rdynPin;
   uint8_t*                        rxPipes;
@@ -74,7 +75,8 @@ private:
   void waitForAck();
   void waitForCmdComplete();
   void writeBondData(aci_evt_t* evt);
-  aci_status_code_t restoreBondData(uint8_t eepromStatus, bool* bondedFirstTimeState);
+  aci_status_code_t restoreBondData(uint8_t eepromStatus);
+  bool readAndStoreBondData();
 
 };
 
