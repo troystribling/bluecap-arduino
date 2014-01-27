@@ -36,6 +36,7 @@ protected:
   virtual void didStartAdvertising(){};
   virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};
   virtual void didReceiveStatusChange(){};
+  virtual void didBond(){};
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
   void setSetUpMessages(hal_aci_data_t* messages, int count);
@@ -76,7 +77,7 @@ private:
   void waitForCmdComplete();
   void writeBondData(aci_evt_t* evt);
   aci_status_code_t restoreBondData(uint8_t eepromStatus);
-  bool readAndStoreBondData();
+  bool readAndWriteBondData();
 
 };
 

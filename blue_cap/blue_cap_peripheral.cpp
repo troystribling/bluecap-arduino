@@ -225,20 +225,20 @@ void BlueCapPeripheral::listen() {
                 DLOG(F("   Make sure that the bond on the phone/PC is deleted as well."));
                 if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eeprom_status)) {
                   DLOG(F("Bond restored successfully"));
+                  lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+									didStartAdvertising();
+									DLOG(F("Advertising started"));
                 }
                 else {
                   DLOG(F("Bond restore failed. Delete the bond and try again."));
                 }
+              } else {
+                lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+								didStartAdvertising();
+                DLOG(F("Advertising started : Waiting to be connected and bonded"));
               }
-              if (ACI_BOND_STATUS_SUCCESS != aciState.bonded) {
-                  lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-                  DLOG(F("No Bond present in EEPROM."));
-                  DLOG(F("Advertising started : Waiting to be connected and bonded"));
-                } else {
-                  lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
-                  DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
-                }
 						} else {
+              DLOG(F("No Bond present in EEPROM."));
 							lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
 							didStartAdvertising();
 							DLOG(F("Advertising started"));
@@ -273,6 +273,14 @@ void BlueCapPeripheral::listen() {
       case ACI_EVT_BOND_STATUS:
 				DLOG(F("ACI_EVT_BOND_STATUS"));
         aciState.bonded = aciEvt->params.bond_status.status_code;
+				DLOG(aciState.bonded, HEX);
+				if (aciState.bonded == ACI_BOND_STATUS_SUCCESS) {
+					DLOG(F("Bond successful"));
+					didBond();
+					readAndWriteBondData();
+				} else {
+					DLOG(F("Bond failed"));
+				}
         break;
 
 			case ACI_EVT_PIPE_STATUS:
@@ -447,7 +455,7 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
   }
 }
 
-bool BlueCapPeripheral::readAndStoreBondData() {
+bool BlueCapPeripheral::readAndWriteBondData() {
   bool status = false;
   aci_evt_t* aciEvt = NULL;
   uint8_t numDynMsgs = 0;
