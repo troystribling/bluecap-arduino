@@ -235,8 +235,8 @@ void BlueCapPeripheral::listen() {
                   DLOG(F("No Bond present in EEPROM."));
                   DLOG(F("Advertising started : Waiting to be connected and bonded"));
                 } else {
-                    lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
-                    DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
+                  lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+                  DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
                 }
 						} else {
 							lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
@@ -253,7 +253,7 @@ void BlueCapPeripheral::listen() {
 				DLOG(aciEvt->params.cmd_rsp.cmd_opcode, HEX);
 				if (ACI_STATUS_SUCCESS != aciEvt->params.cmd_rsp.cmd_status) {
 					DLOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
-					while (1);
+					while(1){delay(100);};
 				} else {
 					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode,
 						aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
