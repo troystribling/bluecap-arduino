@@ -232,11 +232,15 @@ void BlueCapPeripheral::listen() {
                 else {
                   DLOG(F("Bond restore failed. Delete the bond and try again."));
                 }
-              } else {
-                lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-								didStartAdvertising();
-                DLOG(F("Advertising started : Waiting to be connected and bonded"));
               }
+              if (ACI_BOND_STATUS_SUCCESS != aciState.bonded) {
+	              lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+								didStartAdvertising();
+	              DLOG(F("Advertising started : Waiting to be connected and bonded"));
+	            } else {
+                lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+                Serial.println(F("Already bonded : Advertising started : Waiting to be connected"));
+	            }
 						} else {
               DLOG(F("No Bond present in EEPROM."));
 							lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
@@ -366,6 +370,10 @@ void BlueCapPeripheral::setup() {
 
 	lib_aci_init(&aciState);
 	delay(100);
+
+	if (bond) {
+		aciState.bonded = ACI_BOND_STATUS_FAILED;
+	}
 }
 
 void BlueCapPeripheral::incrementCredit() {
