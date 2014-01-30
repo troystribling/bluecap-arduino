@@ -281,7 +281,6 @@ void BlueCapPeripheral::listen() {
 				if (aciState.bonded == ACI_BOND_STATUS_SUCCESS) {
 					DLOG(F("Bond successful"));
 					didBond();
-					readAndWriteBondData();
 				} else {
 					DLOG(F("Bond failed"));
 				}
@@ -305,9 +304,23 @@ void BlueCapPeripheral::listen() {
 				ack = true;
 				DLOG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
-				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
-				DLOG(F("Advertising started"));
-				didStartAdvertising();
+				if (bond) {
+					if (ACI_BOND_STATUS_SUCCESS == aciState.bonded) {
+	          lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+	          DLOG(F("Using existing bond stored in EEPROM."));
+	          DLOG(F("   To delete the bond stored in EEPROM, connect Pin 6 to 3.3v and Reset."));
+	          DLOG(F("   Make sure that the bond on the phone/PC is deleted as well."));
+	          DLOG(F("Advertising started. Connecting."));
+					} else {
+					  lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+						didStartAdvertising();
+            DLOG(F("Advertising started : Waiting to be connected and bonded"));
+					}
+				} else {
+					lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+					DLOG(F("Advertising started"));
+					didStartAdvertising();
+				}
 				break;
 
 			case ACI_EVT_DATA_RECEIVED: {
