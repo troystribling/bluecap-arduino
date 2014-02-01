@@ -75,7 +75,7 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForCmdComplete();
-  void writeBondData(aci_evt_t* evt);
+  uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
   aci_status_code_t restoreBondData(uint8_t eepromStatus);
   bool readAndWriteBondData();
 
