@@ -7,8 +7,6 @@
 
 #include "blue_cap_peripheral.h"
 
-#define RESET_PIN 6
-
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
 	init(_reqnPin, _rdynPin, false, 0);
@@ -160,6 +158,10 @@ bool BlueCapPeripheral::getAddress() {
 	return status;
 }
 
+void BlueCapPeripheral::clearBondData() {
+    EEPROM.write(eepromOffset, 0x00);
+}
+
 // protected
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
 	servicesPipeTypeMapping = mapping;
@@ -222,8 +224,6 @@ void BlueCapPeripheral::listen() {
               eeprom_status = EEPROM.read(eepromOffset);
               if (eeprom_status != 0x00) {
                 DLOG(F("Previous Bond present. Restoring"));
-                DLOG(F("   To delete the bond stored in EEPROM, connect Pin 6 to 3.3v and Reset."));
-                DLOG(F("   Make sure that the bond on the phone/PC is deleted as well."));
                 if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eeprom_status)) {
                   DLOG(F("Bond restored successfully"));
                   lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
@@ -387,15 +387,6 @@ void BlueCapPeripheral::setup() {
 
 	if (bond) {
 		aciState.bonded = ACI_BOND_STATUS_FAILED;
-		pinMode(RESET_PIN, INPUT);
-		DLOG(F("RESET_PIN:"));
-		DLOG(digitalRead(RESET_PIN), DEC);
-		if (digitalRead(RESET_PIN) == HIGH) {
-			DLOG(F("Clearing EEPROM bond"));
-			EEPROM.write(eepromOffset, 0x00);
-			DLOG(F("Remove wire and reset"));
-			while(1){delay(1000);};
-		}
 	}
 }
 
@@ -427,11 +418,14 @@ void BlueCapPeripheral::waitForCmdComplete () {
 }
 
 uint16_t BlueCapPeripheral::writeBondData(aci_evt_t* evt, uint16_t addr) {
+	DLOG(F("writeBondData"));
   EEPROM.write(addr, evt->len - 2);
   eepromOffset++;
   EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
   addr++;
   for (uint8_t i=0; i< (evt->len-3); i++) {
+  	DLOG(F("message address:"));
+  	DLOG(addr, DEC);
     EEPROM.write(addr, evt->params.cmd_rsp.params.padding[i]);
     addr++;
   }
@@ -444,16 +438,24 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
   uint8_t len = 0;
   uint8_t numDynMsgs = eepromStatus & 0x7F;
 
+	DLOG(F("restoreBondData dynamic messages:"));
+	DLOG(numDynMsgs, DEC);
+
   while(1) {
+
     len = EEPROM.read(addr);
     addr++;
     aciCmd.buffer[0] = len;
+
+    DLOG(F("Restore message len:"));
+    DLOG(len);
 
     for (uint8_t i = 1; i <= len; i++) {
         aciCmd.buffer[i] = EEPROM.read(addr);
         addr++;
     }
     waitForCmdComplete();
+    DLOG(F("Send restore command"));
     if (!hal_aci_tl_send(&aciCmd)) {
       DLOG(F("restoreBondData: failed"));
       cmdComplete = true;
@@ -461,6 +463,8 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
     }
 
     while (1) {
+    	DLOG(F("Restore messages left:"));
+    	DLOG(numDynMsgs);
       if (lib_aci_event_get(&aciState, &aciData)) {
         aciEvt = &aciData.evt;
         if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode) {
@@ -472,12 +476,15 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
             bondedFirstTimeState = false;
             aciState.bonded = ACI_BOND_STATUS_SUCCESS;
+    				DLOG(F("Restore of bond data completed successfully"));
             return ACI_STATUS_TRANSACTION_COMPLETE;
           }
           if (0 >= numDynMsgs) {
+    				DLOG(F("Restore of bond data completed successfully"));
             return ACI_STATUS_ERROR_INTERNAL;
           }
           if (ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status) {
+    				DLOG(F("Restore next bond data message"));
             break;
           }
         }

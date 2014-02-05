@@ -27,6 +27,8 @@ public:
   bool getDeviceVersion();
   bool getAddress();
 
+  void clearBondData();
+
 protected:
 
   virtual void didReceiveData(uint8_t characteristicId, uint8_t* data, uint8_t size){};
