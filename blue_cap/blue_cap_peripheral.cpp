@@ -463,7 +463,7 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
     }
 
     while (1) {
-    	DLOG(F("Restore messages left:"));
+    	DLOG(F("Restore messages:"));
     	DLOG(numDynMsgs);
       if (lib_aci_event_get(&aciState, &aciData)) {
         aciEvt = &aciData.evt;
@@ -502,22 +502,32 @@ bool BlueCapPeripheral::readAndWriteBondData() {
   lib_aci_read_dynamic_data();
   numDynMsgs++;
 
+  DLOG(F("readAndWriteBondData"));
+
   while (1) {
+  	DLOG(F("Message:"));
+  	DLOG(numDynMsgs, DEC);
     if (true == lib_aci_event_get(&aciState, &aciData)) {
       aciEvt = &aciData.evt;
       if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode ) {
+      	DLOG(F("readAndWriteBondData command response failed:"));
+        DLOG(aciEvt->evt_opcode, HEX);
         status = false;
         break;
       } else if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
+      	DLOG(F("readAndWriteBondData transaction complete"));
         writeBondData(aciEvt, addr);
         EEPROM.write(eepromOffset, 0x80 | numDynMsgs);
         status = true;
         break;
       } else if (!(ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status)) {
+      	DLOG(F("readAndWriteBondData transaction failed:"));
+        DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
         EEPROM.write(eepromOffset, 0x00);
         status = false;
         break;
       } else {
+      	DLOG(F("readAndWriteBondData transaction continue"));
         addr = writeBondData(aciEvt, addr);
         lib_aci_read_dynamic_data();
         numDynMsgs++;
