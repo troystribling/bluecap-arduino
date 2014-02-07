@@ -220,11 +220,13 @@ void BlueCapPeripheral::listen() {
 					case ACI_DEVICE_STANDBY: {
 						DLOG(F("ACI_DEVICE_STANDBY"));
 						if (bond) {
-					    uint8_t eeprom_status = 0;
-              eeprom_status = EEPROM.read(eepromOffset);
-              if (eeprom_status != 0x00) {
+					    uint8_t eepromStatus = 0;
+              eepromStatus = EEPROM.read(eepromOffset);
+              DLOG(F("eepromStatus:"));
+              DLOG(eepromStatus);
+              if (eepromStatus != 0x00) {
                 DLOG(F("Previous Bond present. Restoring"));
-                if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eeprom_status)) {
+                if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eepromStatus)) {
                   DLOG(F("Bond restored successfully"));
                   lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
 									didStartAdvertising();
@@ -307,10 +309,19 @@ void BlueCapPeripheral::listen() {
 				didDisconnect();
 				if (bond) {
 					if (ACI_BOND_STATUS_SUCCESS == aciState.bonded) {
+						if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
+							if (bondedFirstTimeState) {
+								bondedFirstTimeState = false;
+								if (readAndWriteBondData()) {
+									DLOG(F("Bond data read and store successful"));
+								}
+							}
+							if (0x24 == aciEvt->params.disconnected.btle_status) {
+								DLOG(F("Central deleted bond data"));
+							}
+						}
 	          lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
 	          DLOG(F("Using existing bond stored in EEPROM."));
-	          DLOG(F("   To delete the bond stored in EEPROM, connect Pin 6 to 3.3v and Reset."));
-	          DLOG(F("   Make sure that the bond on the phone/PC is deleted as well."));
 	          DLOG(F("Advertising started. Connecting."));
 					} else {
 					  lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
