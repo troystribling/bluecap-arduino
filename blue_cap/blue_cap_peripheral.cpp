@@ -396,6 +396,9 @@ void BlueCapPeripheral::setup() {
 	lib_aci_init(&aciState);
 	delay(100);
 
+  DLOG(F("Initial eepromOffset:"));
+  DLOG(eepromOffset, HEX);
+
 	if (bond) {
 		aciState.bonded = ACI_BOND_STATUS_FAILED;
 	}
@@ -526,7 +529,9 @@ bool BlueCapPeripheral::readAndWriteBondData() {
         status = false;
         break;
       } else if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
-      	DLOG(F("readAndWriteBondData transaction complete"));
+      	DLOG(F("readAndWriteBondData transaction complete, status, eepromOffset"));
+      	DLOG(0x80 | numDynMsgs, HEX);
+      	DLOG(eepromOffset, DEC);
         writeBondData(aciEvt, addr);
         EEPROM.write(eepromOffset, 0x80 | numDynMsgs);
         status = true;
