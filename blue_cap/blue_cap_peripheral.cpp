@@ -434,7 +434,6 @@ void BlueCapPeripheral::waitForCmdComplete () {
 uint16_t BlueCapPeripheral::writeBondData(aci_evt_t* evt, uint16_t addr) {
 	DLOG(F("writeBondData"));
   EEPROM.write(addr, evt->len - 2);
-  eepromOffset++;
   EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
   addr++;
   for (uint8_t i=0; i< (evt->len-3); i++) {
@@ -480,6 +479,7 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
     	DLOG(F("Restore messages:"));
     	DLOG(numDynMsgs);
       if (lib_aci_event_get(&aciState, &aciData)) {
+        DLOG(F("Event recieved:"));
         aciEvt = &aciData.evt;
         if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode) {
             DLOG(F("restoreBondData: failed with error: 0x"));
