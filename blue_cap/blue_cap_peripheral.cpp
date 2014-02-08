@@ -222,8 +222,8 @@ void BlueCapPeripheral::listen() {
 						if (bond) {
 					    uint8_t eepromStatus = 0;
               eepromStatus = EEPROM.read(eepromOffset);
-              DLOG(F("eepromStatus:"));
-              DLOG(eepromStatus);
+              DLOG(F("found eepromStatus:"));
+              DLOG(eepromStatus, HEX);
               if (eepromStatus != 0x00) {
                 DLOG(F("Previous Bond present. Restoring"));
                 if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eepromStatus)) {
@@ -433,12 +433,18 @@ void BlueCapPeripheral::waitForCmdComplete () {
 
 uint16_t BlueCapPeripheral::writeBondData(aci_evt_t* evt, uint16_t addr) {
 	DLOG(F("writeBondData"));
+  DLOG(F("Message length:"));
+  DLOG(evt->len - 2, HEX);
   EEPROM.write(addr, evt->len - 2);
+  addr++;
+  DLOG(F("Event op_code:"));
+  DLOG(ACI_CMD_WRITE_DYNAMIC_DATA, HEX);
   EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
   addr++;
   for (uint8_t i=0; i< (evt->len-3); i++) {
-  	DLOG(F("message address:"));
-  	DLOG(addr, DEC);
+  	DLOG(F("message address and value:"));
+  	DLOG(addr, HEX);
+    DLOG(evt->params.cmd_rsp.params.padding[i], HEX);
     EEPROM.write(addr, evt->params.cmd_rsp.params.padding[i]);
     addr++;
   }
@@ -452,21 +458,28 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
   uint8_t numDynMsgs = eepromStatus & 0x7F;
 
 	DLOG(F("restoreBondData dynamic messages:"));
-	DLOG(numDynMsgs, DEC);
+	DLOG(numDynMsgs, HEX);
 
   while(1) {
+
+    DLOG(F("Restore messages:"));
+    DLOG(numDynMsgs);
 
     len = EEPROM.read(addr);
     addr++;
     aciCmd.buffer[0] = len;
 
-    DLOG(F("Restore message len:"));
-    DLOG(len);
+    DLOG(F("Message len:"));
+    DLOG(len, HEX);
 
     for (uint8_t i = 1; i <= len; i++) {
         aciCmd.buffer[i] = EEPROM.read(addr);
+        DLOG(F("message address and value:"));
+        DLOG(addr, HEX);
+        DLOG(aciCmd.buffer[i], HEX);
         addr++;
     }
+
     waitForCmdComplete();
     DLOG(F("Send restore command"));
     if (!hal_aci_tl_send(&aciCmd)) {
@@ -476,30 +489,33 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
     }
 
     while (1) {
-    	DLOG(F("Restore messages:"));
-    	DLOG(numDynMsgs);
       if (lib_aci_event_get(&aciState, &aciData)) {
-        DLOG(F("Event recieved:"));
         aciEvt = &aciData.evt;
+        DLOG(F("Event recieved with opcode:"));
+        DLOG(aciEvt->evt_opcode, HEX);
         if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode) {
             DLOG(F("restoreBondData: failed with error: 0x"));
             DLOG(aciEvt->evt_opcode, HEX);
             return ACI_STATUS_ERROR_INTERNAL;
         } else {
           numDynMsgs--;
+          DLOG(F("Command status:"));
+          DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
             bondedFirstTimeState = false;
             aciState.bonded = ACI_BOND_STATUS_SUCCESS;
     				DLOG(F("Restore of bond data completed successfully"));
             return ACI_STATUS_TRANSACTION_COMPLETE;
-          }
-          if (0 >= numDynMsgs) {
-    				DLOG(F("Restore of bond data completed successfully"));
-            return ACI_STATUS_ERROR_INTERNAL;
-          }
-          if (ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status) {
-    				DLOG(F("Restore next bond data message"));
+          } else if (ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status) {
+            DLOG(F("Restore next bond data message"));
             break;
+          } else if (0 >= numDynMsgs) {
+    				DLOG(F("Restore of bond data failed with too many messages"));
+            return ACI_STATUS_ERROR_INTERNAL;
+          } else {
+            DLOG(F("Restore of bond data failed with cmd_status:"));
+            DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
+            return ACI_STATUS_ERROR_INTERNAL;
           }
         }
       }
@@ -519,9 +535,9 @@ bool BlueCapPeripheral::readAndWriteBondData() {
   DLOG(F("readAndWriteBondData"));
 
   while (1) {
-  	DLOG(F("Message:"));
-  	DLOG(numDynMsgs, DEC);
-    if (true == lib_aci_event_get(&aciState, &aciData)) {
+    if (lib_aci_event_get(&aciState, &aciData)) {
+      DLOG(F("Recieved event for message:"));
+      DLOG(numDynMsgs, DEC);
       aciEvt = &aciData.evt;
       if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode ) {
       	DLOG(F("readAndWriteBondData command response failed:"));
