@@ -316,9 +316,6 @@ void BlueCapPeripheral::listen() {
 									DLOG(F("Bond data read and store successful"));
 								}
 							}
-							if (0x24 == aciEvt->params.disconnected.btle_status) {
-								DLOG(F("Central deleted bond data"));
-							}
 						}
 	          lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
 	          DLOG(F("Using existing bond stored in EEPROM."));
