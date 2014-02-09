@@ -3,13 +3,14 @@
 
 #include "nordic/lib_aci.h"
 
+class BlueCapBond;
+
 class BlueCapPeripheral {
 
 public:
 
   BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin);
-  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset);
-  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, bool _bond);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, BlueCapBond* bond);
 
   ~BlueCapPeripheral();
 
@@ -26,8 +27,6 @@ public:
   bool getTemperature();
   bool getDeviceVersion();
   bool getAddress();
-
-  void clearBondData();
 
 protected:
 
@@ -55,20 +54,18 @@ private:
   bool                            isConnected;
   bool                            ack;
   bool                            timingChangeDone;
-  bool                            bond;
   bool                            cmdComplete;
-  bool                            bondedFirstTimeState;
   uint8_t                         reqnPin;
   uint8_t                         rdynPin;
   uint8_t*                        rxPipes;
-  uint16_t                        eepromOffset;
   aci_state_t                     aciState;
   hal_aci_data_t                  aciCmd;
   hal_aci_evt_t                   aciData;
+  BlueCapBond*                    bond;
 
 private:
 
-  void init(uint8_t _reqnPin, uint8_t _rdynPin, bool _bond, uint16_t _eepromOffset);
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, BlueCapBond* _bond);
 
   void listen();
   void setup();
@@ -77,9 +74,6 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForCmdComplete();
-  uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
-  aci_status_code_t restoreBondData(uint8_t eepromStatus);
-  bool readAndWriteBondData();
 
 };
 
