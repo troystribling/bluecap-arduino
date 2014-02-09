@@ -472,6 +472,7 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
     DLOG(F("Message len:"));
     DLOG(len, HEX);
 
+    DLOG(F("Start reading message"));
     for (uint8_t i = 1; i <= len; i++) {
         aciCmd.buffer[i] = EEPROM.read(addr);
         DLOG(F("message address and value:"));
@@ -479,8 +480,8 @@ aci_status_code_t BlueCapPeripheral::restoreBondData(uint8_t eepromStatus) {
         DLOG(aciCmd.buffer[i], HEX);
         addr++;
     }
+    DLOG(F("Finished reading message"));
 
-    waitForCmdComplete();
     DLOG(F("Send restore command"));
     if (!hal_aci_tl_send(&aciCmd)) {
       DLOG(F("restoreBondData: failed"));
