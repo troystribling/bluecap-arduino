@@ -3,14 +3,12 @@
 
 #include "nordic/lib_aci.h"
 
-class BlueCapBond;
-
 class BlueCapPeripheral {
 
 public:
 
   BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin);
-  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, BlueCapBond* bond);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset);
 
   ~BlueCapPeripheral();
 
@@ -61,11 +59,10 @@ private:
   aci_state_t                     aciState;
   hal_aci_data_t                  aciCmd;
   hal_aci_evt_t                   aciData;
-  BlueCapBond*                    bond;
 
 private:
 
-  void init(uint8_t _reqnPin, uint8_t _rdynPin, BlueCapBond* _bond);
+  void init(uint8_t _reqnPin, uint8_t _rdynPin);
 
   void listen();
   void setup();
@@ -74,6 +71,42 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForCmdComplete();
+
+private:
+
+  class BlueCapBond {
+
+    public:
+
+      BlueCapBond(uint16_t _eepromOffset);
+
+      void clearBondData();
+      uint8_t status();
+      void setup(aci_state_t* aciState);
+
+      uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
+      aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
+      bool readAndWriteBondData(aci_state_t* aciState);
+
+      bool                  bondedFirstTimeState;
+
+    private:
+
+      uint16_t              eepromOffset;
+      hal_aci_data_t        aciCmd;
+      hal_aci_evt_t         aciData;
+
+    private:
+
+      void init(uint16_t _eepromOffset);
+
+    };
+
+    BlueCapBond*            bond;
+
+public:
+
+    void clearBondData();
 
 };
 
