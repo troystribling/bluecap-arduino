@@ -87,14 +87,15 @@ private:
       uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
       aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
       bool readAndWriteBondData(aci_state_t* aciState);
-
-      bool                  bondedFirstTimeState;
+      bool deviceStandByReceived(aci_state_t* aciState);
+      bool disconnected(aci_state_t* aciState);
 
     private:
 
       uint16_t              eepromOffset;
       hal_aci_data_t        aciCmd;
       hal_aci_evt_t         aciData;
+      bool                  bondedFirstTimeState;
 
     private:
 
