@@ -215,7 +215,6 @@ void BlueCapPeripheral::listen() {
             if (bond) {
               if (bond->deviceStandByReceived(&aciState)) {
                 didStartAdvertising();
-                DLOG(F("Advertising started"));
               }
             } else {
               DLOG(F("No Bond present in EEPROM."));
@@ -384,7 +383,9 @@ void BlueCapPeripheral::waitForCmdComplete () {
 
 // BlueCapBond
 void  BlueCapPeripheral::clearBondData() {
-  bond->clearBondData();;
+  if (bond) {
+    bond->clearBondData();
+  }
 }
 
 BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset) {
@@ -553,7 +554,6 @@ bool BlueCapPeripheral::BlueCapBond::deviceStandByReceived(aci_state_t* aciState
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eepromStatus, aciState)) {
       lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
       DLOG(F("Bond restored successfully"));
-      DLOG(F("Advertising started"));
     }
     else {
       DLOG(F("Bond restore failed. Delete the bond and try again."));
