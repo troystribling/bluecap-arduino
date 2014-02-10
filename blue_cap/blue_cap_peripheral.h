@@ -1,8 +1,6 @@
 #ifndef _BLUE_CAP_PERIPHERAL_H
 #define _BLUE_CAP_PERIPHERAL_H
 
-#define BLUE_CAP_BOND
-
 #include "nordic/lib_aci.h"
 
 class BlueCapPeripheral {
@@ -64,8 +62,6 @@ private:
 
 private:
 
-  void init(uint8_t _reqnPin, uint8_t _rdynPin);
-
   void listen();
   void setup();
   void incrementCredit();
@@ -73,8 +69,6 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForCmdComplete();
-
-#ifdef BLUE_CAP_BOND
 
 private:
 
@@ -107,13 +101,15 @@ private:
 
     };
 
+private:
+
   BlueCapBond*            bond;
+
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, BlueCapBond* _bond);
 
 public:
 
   void clearBondData();
-
-#endif // BLUE_CAP_BOND
 
 };
 
