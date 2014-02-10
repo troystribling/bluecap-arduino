@@ -1,6 +1,8 @@
 #ifndef _BLUE_CAP_PERIPHERAL_H
 #define _BLUE_CAP_PERIPHERAL_H
 
+#define BLUE_CAP_BOND
+
 #include "nordic/lib_aci.h"
 
 class BlueCapPeripheral {
@@ -72,6 +74,8 @@ private:
   void waitForAck();
   void waitForCmdComplete();
 
+#ifdef BLUE_CAP_BOND
+
 private:
 
   class BlueCapBond {
@@ -88,7 +92,7 @@ private:
       aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
       bool readAndWriteBondData(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
-      bool disconnected(aci_state_t* aciState);
+      void disconnected(aci_state_t* aciState, aci_evt_t* aciEvt);
 
     private:
 
@@ -103,11 +107,13 @@ private:
 
     };
 
-    BlueCapBond*            bond;
+  BlueCapBond*            bond;
 
 public:
 
-    void clearBondData();
+  void clearBondData();
+
+#endif // BLUE_CAP_BOND
 
 };
 
