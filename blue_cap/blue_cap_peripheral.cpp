@@ -24,6 +24,7 @@
 }                                                                       \
 
 #define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
+  waitForCmdComplete();                                                 \
   bool status = Y;                                                      \
   DLOG(F(Z));                                                           \
   if (status) {                                                         \
@@ -56,6 +57,7 @@ REMOTE_COMMAND(sendData(uint8_t pipe, uint8_t* value, uint8_t size), lib_aci_sen
 REMOTE_COMMAND(requestData(uint8_t pipe), lib_aci_request_data(&aciState, pipe), "requestData")
 
 bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t size) {
+  waitForCmdComplete();
 	bool status = lib_aci_set_local_data(&aciState, pipe, value, size);
 	if (status) {
 		DLOG(F("setData successful over pipe:"));
