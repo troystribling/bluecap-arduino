@@ -50,55 +50,10 @@ BlueCapPeripheral::~BlueCapPeripheral() {
   }
 }
 
-REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "Send ACK")
-
-bool BlueCapPeripheral::sendNack(uint8_t pipe, const uint8_t errorCode) {
-	bool status = false;
-	if (isPipeAvailable(pipe)) {
-		waitForCredit();
-		status = lib_aci_send_nack(&aciState, pipe, errorCode);
-	}
-	if (status) {
-		waitForAck();
-		DLOG(F("NACK successful over pipe:"));
-  } else {
-    DLOG(F("NACK failed over pipe:"));
-  }
-	DLOG(pipe, HEX);
-	return status;
-}
-
-bool BlueCapPeripheral::sendData(uint8_t pipe, uint8_t* value, uint8_t size) {
-	bool status = false;
-	if (isPipeAvailable(pipe)) {
-		waitForCredit();
-		status = lib_aci_send_data(pipe, value, size);
-	}
-	if (status) {
-		waitForAck();
-		DLOG(F("sendData successful over pipe:"));
-	} else {
-		DLOG(F("sendData failed over pipe:"));
-	}
-		DLOG(pipe, HEX);
-	return status;
-}
-
-bool BlueCapPeripheral::requestData(uint8_t pipe) {
-	waitForCredit();
-	bool status = true;
-	if (isPipeAvailable(pipe)) {
-		status = lib_aci_request_data(&aciState, pipe);
-	}
-	if (status) {
-		waitForAck();
-		DLOG(F("requestData successful over pipe:"));
-	} else {
-		DLOG(F("requestData failed over pipe:"));
-	}
-	DLOG(pipe, HEX);
-	return status;
-}
+REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "sendAck")
+REMOTE_COMMAND(sendNack(uint8_t pipe, const uint8_t errorCode), lib_aci_send_nack(&aciState, pipe, errorCode), "sendNack")
+REMOTE_COMMAND(sendData(uint8_t pipe, uint8_t* value, uint8_t size), lib_aci_send_data(pipe, value, size), "sendData")
+REMOTE_COMMAND(requestData(uint8_t pipe), lib_aci_request_data(&aciState, pipe), "requestData")
 
 bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t size) {
 	bool status = lib_aci_set_local_data(&aciState, pipe, value, size);
