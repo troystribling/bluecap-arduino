@@ -25,14 +25,14 @@
 
 #define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
   waitForCmdComplete();                                                 \
-  bool status = Y;                                                      \
   DLOG(F(Z));                                                           \
+  bool status = Y;                                                      \
   if (status) {                                                         \
-    DLOG(F("successful over pipe:"));                                   \
+    DLOG(F("successful"));                                              \
   } else {                                                              \
-    DLOG(F("failed over pipe:"));                                       \
+    DLOG(F("failed"));                                                  \
+    cmdComplete = true;                                                 \
   }                                                                     \
-  DLOG(pipe, HEX);                                                      \
   return status;                                                        \
 }                                                                       \
 
@@ -51,82 +51,18 @@ BlueCapPeripheral::~BlueCapPeripheral() {
   }
 }
 
+
 REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "sendAck")
 REMOTE_COMMAND(sendNack(uint8_t pipe, const uint8_t errorCode), lib_aci_send_nack(&aciState, pipe, errorCode), "sendNack")
 REMOTE_COMMAND(sendData(uint8_t pipe, uint8_t* value, uint8_t size), lib_aci_send_data(pipe, value, size), "sendData")
 REMOTE_COMMAND(requestData(uint8_t pipe), lib_aci_request_data(&aciState, pipe), "requestData")
 
-bool BlueCapPeripheral::setData(uint8_t pipe, uint8_t* value, uint8_t size) {
-  waitForCmdComplete();
-	bool status = lib_aci_set_local_data(&aciState, pipe, value, size);
-	if (status) {
-		DLOG(F("setData successful over pipe:"));
-	} else {
-		DLOG(F("sendData failed over pipe:"));
-	}
-	DLOG(pipe, HEX);
-	return status;
-}
-
-bool BlueCapPeripheral::setTxPower(aci_device_output_power_t txPower) {
-	waitForCmdComplete();
-	bool status = lib_aci_set_tx_power(txPower);
-	if (status) {
-		DLOG(F("setTxPower successful"));
-	} else {
-		DLOG(F("setTxPower failed"));
-		cmdComplete = true;
-	}
-	return status;
-}
-
-bool BlueCapPeripheral::getBatteryLevel() {
-	waitForCmdComplete();
-	bool status = lib_aci_get_battery_level();
-	if (status) {
-		DLOG(F("getBatteryLevel successful"));
-	} else {
-		DLOG(F("getBatteryLevel failed"));
-		cmdComplete = true;
-	}
-	return status;
-}
-
-bool BlueCapPeripheral::getTemperature() {
-	waitForCmdComplete();
-	bool status = lib_aci_get_temperature();
-	if (status) {
-		DLOG(F("getTemperartue successful"));
-	} else {
-		DLOG(F("getTemperartue failed"));
-		cmdComplete = true;
-	}
-	return status;
-}
-
-bool BlueCapPeripheral::getDeviceVersion() {
-	waitForCmdComplete();
-	bool status = lib_aci_device_version();
-	if (status) {
-		DLOG(F("getDeviceVersion successful"));
-	} else {
-		DLOG(F("getDeviceVersion failed"));
-		cmdComplete = true;
-	}
-	return status;
-}
-
-bool BlueCapPeripheral::getAddress() {
-	waitForCmdComplete();
-	bool status = lib_aci_get_address();
-	if (status) {
-		DLOG(F("getAddress successful"));
-	} else {
-		DLOG(F("getAddress failed"));
-		cmdComplete = true;
-	}
-	return status;
-}
+LOCAL_COMMAND(setData(uint8_t pipe, uint8_t* value, uint8_t size), lib_aci_set_local_data(&aciState, pipe, value, size), "setData")
+LOCAL_COMMAND(setTxPower(aci_device_output_power_t txPower), lib_aci_set_tx_power(txPower), "setTxPower")
+LOCAL_COMMAND(getBatteryLevel(), lib_aci_get_battery_level(), "getBatteryLevel")
+LOCAL_COMMAND(getTemperature(), lib_aci_get_temperature(), "getTemperartue")
+LOCAL_COMMAND(getDeviceVersion(), lib_aci_device_version(), "getDeviceVersion")
+LOCAL_COMMAND(getAddress(), lib_aci_get_address(), "getAddress")
 
 // protected
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
