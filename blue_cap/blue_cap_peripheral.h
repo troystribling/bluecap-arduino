@@ -57,7 +57,6 @@ private:
   uint8_t                         rdynPin;
   uint8_t*                        rxPipes;
   aci_state_t                     aciState;
-  hal_aci_data_t                  aciCmd;
   hal_aci_evt_t                   aciData;
 
 private:
@@ -82,7 +81,6 @@ private:
       uint8_t status();
       void setup(aci_state_t* aciState);
 
-      uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
       aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
       bool readAndWriteBondData(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
@@ -91,13 +89,14 @@ private:
     private:
 
       uint16_t              eepromOffset;
-      hal_aci_data_t        aciCmd;
       hal_aci_evt_t         aciData;
       bool                  bondedFirstTimeState;
 
     private:
 
       void init(uint16_t _eepromOffset);
+      uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
+      uint16_t readBondData(hal_aci_data_t* aciCmd, uint16_t addr);
 
     };
 

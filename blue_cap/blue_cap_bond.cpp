@@ -26,31 +26,11 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
   aciState->bonded = ACI_BOND_STATUS_FAILED;
 }
 
-uint16_t  BlueCapPeripheral::BlueCapBond::writeBondData(aci_evt_t* evt, uint16_t addr) {
-  DLOG(F("writeBondData"));
-  DLOG(F("Message length:"));
-  DLOG(evt->len - 2, HEX);
-  EEPROM.write(addr, evt->len - 2);
-  addr++;
-  DLOG(F("Event op_code:"));
-  DLOG(ACI_CMD_WRITE_DYNAMIC_DATA, HEX);
-  EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
-  addr++;
-  for (uint8_t i=0; i< (evt->len-3); i++) {
-    DLOG(F("message address and value:"));
-    DLOG(addr, HEX);
-    DLOG(evt->params.cmd_rsp.params.padding[i], HEX);
-    EEPROM.write(addr, evt->params.cmd_rsp.params.padding[i]);
-    addr++;
-  }
-  return addr;
-}
-
 aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(uint8_t eepromStatus, aci_state_t* aciState) {
   aci_evt_t *aciEvt;
   uint16_t addr = eepromOffset + 1;
-  uint8_t len = 0;
   uint8_t numDynMsgs = eepromStatus & 0x7F;
+  hal_aci_data_t aciCmd;
 
   DLOG(F("restoreBondData dynamic messages:"));
   DLOG(numDynMsgs, HEX);
@@ -59,23 +39,7 @@ aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(uint8_t eepro
 
     DLOG(F("Restore messages:"));
     DLOG(numDynMsgs);
-
-    len = EEPROM.read(addr);
-    addr++;
-    aciCmd.buffer[0] = len;
-
-    DLOG(F("Message len:"));
-    DLOG(len, HEX);
-
-    DLOG(F("Start reading message"));
-    for (uint8_t i = 1; i <= len; i++) {
-        aciCmd.buffer[i] = EEPROM.read(addr);
-        DLOG(F("message address and value:"));
-        DLOG(addr, HEX);
-        DLOG(aciCmd.buffer[i], HEX);
-        addr++;
-    }
-    DLOG(F("Finished reading message"));
+    addr = readBondData(&aciCmd, addr);
 
     DLOG(F("Send restore command"));
     if (!hal_aci_tl_send(&aciCmd)) {
@@ -211,6 +175,44 @@ void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt
 }
 
 // private
+uint16_t  BlueCapPeripheral::BlueCapBond::writeBondData(aci_evt_t* evt, uint16_t addr) {
+  DLOG(F("writeBondData"));
+  DLOG(F("Message length:"));
+  DLOG(evt->len - 2, HEX);
+  EEPROM.write(addr, evt->len - 2);
+  addr++;
+  DLOG(F("Event op_code:"));
+  DLOG(ACI_CMD_WRITE_DYNAMIC_DATA, HEX);
+  EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
+  addr++;
+  for (uint8_t i=0; i< (evt->len-3); i++) {
+    DLOG(F("message address and value:"));
+    DLOG(addr, HEX);
+    DLOG(evt->params.cmd_rsp.params.padding[i], HEX);
+    EEPROM.write(addr, evt->params.cmd_rsp.params.padding[i]);
+    addr++;
+  }
+  return addr;
+}
+
+uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, uint16_t addr) {
+  DLOG(F("Start reading message"));
+  uint8_t len = EEPROM.read(addr);
+  addr++;
+  aciCmd->buffer[0] = len;
+  DLOG(F("Message len:"));
+  DLOG(len, HEX);
+  for (uint8_t i = 1; i <= len; i++) {
+      aciCmd->buffer[i] = EEPROM.read(addr);
+      DLOG(F("message address and value:"));
+      DLOG(addr, HEX);
+      DLOG(aciCmd->buffer[i], HEX);
+      addr++;
+  }
+  DLOG(F("Finished reading message"));
+  return addr;
+}
+
 void  BlueCapPeripheral::BlueCapBond::init(uint16_t _eepromOffset) {
   eepromOffset = _eepromOffset;
   bondedFirstTimeState = true;
