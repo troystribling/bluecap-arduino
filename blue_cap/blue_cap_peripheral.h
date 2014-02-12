@@ -9,6 +9,7 @@ public:
 
   BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin);
   BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset);
+  BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
 
   ~BlueCapPeripheral();
 
@@ -55,6 +56,7 @@ private:
   bool                            cmdComplete;
   uint8_t                         reqnPin;
   uint8_t                         rdynPin;
+  uint8_t                         maxBonds;
   uint8_t*                        rxPipes;
   aci_state_t                     aciState;
   hal_aci_evt_t                   aciData;
@@ -76,13 +78,8 @@ private:
     public:
 
       BlueCapBond(uint16_t _eepromOffset);
-
       void clearBondData();
-      uint8_t status();
       void setup(aci_state_t* aciState);
-
-      aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
-      bool readAndWriteBondData(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
       void disconnected(aci_state_t* aciState, aci_evt_t* aciEvt);
 
@@ -95,6 +92,9 @@ private:
     private:
 
       void init(uint16_t _eepromOffset);
+      uint8_t status();
+      aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
+      bool readAndWriteBondData(aci_state_t* aciState);
       uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
       uint16_t readBondData(hal_aci_data_t* aciCmd, uint16_t addr);
 
@@ -102,9 +102,9 @@ private:
 
 private:
 
-  BlueCapBond*            bond;
+  BlueCapBond*              bonds;
 
-  void init(uint8_t _reqnPin, uint8_t _rdynPin, BlueCapBond* _bond);
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
 
 public:
 
