@@ -16,6 +16,8 @@ public:
   virtual void begin(){setup();};
   virtual void loop(){listen();};
 
+  void clearBondData();
+
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
   bool sendData(uint8_t pipe, uint8_t *value, uint8_t size);
@@ -26,6 +28,7 @@ public:
   bool getTemperature();
   bool getDeviceVersion();
   bool getAddress();
+
 
 protected:
 
@@ -54,12 +57,13 @@ private:
   bool                            ack;
   bool                            timingChangeDone;
   bool                            cmdComplete;
-  uint8_t                         reqnPin;
-  uint8_t                         rdynPin;
-  uint8_t                         maxBonds;
+  uint8_t                         currentBond;
   uint8_t*                        rxPipes;
   aci_state_t                     aciState;
   hal_aci_evt_t                   aciData;
+  uint8_t                         reqnPin;
+  uint8_t                         rdynPin;
+  uint8_t                         maxBonds;
 
 private:
 
@@ -70,6 +74,7 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForCmdComplete();
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
 
 private:
 
@@ -88,10 +93,10 @@ private:
       uint16_t              eepromOffset;
       hal_aci_evt_t         aciData;
       bool                  bondedFirstTimeState;
+      uint8_t               index;
 
     private:
 
-      void init(uint16_t _eepromOffset);
       uint8_t status();
       aci_status_code_t restoreBondData(uint8_t eepromStatus, aci_state_t* aciState);
       bool readAndWriteBondData(aci_state_t* aciState);
@@ -102,13 +107,12 @@ private:
 
 private:
 
-  BlueCapBond*              bonds;
+  BlueCapBond**             bonds;
 
-  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
+private:
 
-public:
-
-  void clearBondData();
+  BlueCapBond* getCurrentBond();
+  void nextBond();
 
 };
 

@@ -42,7 +42,7 @@ BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
 }
 
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset) {
-  init(_reqnPin, _rdynPin, _eepromOffset, 1);
+  init(_reqnPin, _rdynPin, _eepromOffset, 0);
 }
 
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds) {
@@ -50,8 +50,14 @@ BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_
 }
 
 BlueCapPeripheral::~BlueCapPeripheral() {
+  for(int i = 0; i < maxBonds; i++) {
+    delete bonds[i];
+  }
+}
+
+void  BlueCapPeripheral::clearBondData() {
   if (maxBonds > 0) {
-    delete bonds;
+    bonds->clearBondData();
   }
 }
 
@@ -97,15 +103,19 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
 	numberOfPipes = 0;
 	isConnected = false;
 	ack = false;
-	reqnPin = _reqnPin;
-	rdynPin = _rdynPin;
 	timingChangeDone = false;
 	cmdComplete = true;
+  currentBondIndex = 0;
+  reqnPin = _reqnPin;
+  rdynPin = _rdynPin;
   maxBonds = _maxBonds;
   if (maxBonds > 0) {
-    bonds = new BlueCapBond(_eepromOffset);
+    bonds = (BlueCapBond**)malloc(maxBonds*sizeof(BlueCapBond*));
+    for (int i = 0; i < maxBonds; i++) {
+      bonds[i] = new BlueCapBond(_eepromOffset, i);
+    }
   } else {
-    bonds = NULL;
+    bonds = NULL:
   }
 }
 
@@ -264,8 +274,8 @@ void BlueCapPeripheral::setup() {
 	lib_aci_init(&aciState);
 	delay(100);
 
-  if (maxBonds > 0) {
-    bonds->setup(&aciState);
+  for(int i = 0; i < maxBonds; i++) {
+    bonds[i]->setup(&aciState);
   }
 }
 
@@ -297,9 +307,17 @@ void BlueCapPeripheral::waitForCmdComplete () {
 }
 
 // BlueCapBond
-void  BlueCapPeripheral::clearBondData() {
-  if (maxBonds > 0) {
-    bonds->clearBondData();
+BlueCapBond* BlueCapPeripheral::getCurrentBond() {
+  BlueCapBond* bond = NULL;
+  if (currentBondIndex < maxBonds){
+    bond = bonds[currentBondIndex];
   }
+  return bond;
 }
 
+void BlueCapPeripheral::nextBond() {
+  currentBondIndex++;
+  if (currentBondIndex > maxBonds - 1) {
+    currentBondIndex = 0;
+  }
+}

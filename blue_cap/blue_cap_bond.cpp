@@ -7,9 +7,13 @@
 
 #include "blue_cap_peripheral.h"
 
+#define BOND_HEADER_BYTES               2
+#define BOND_DOES_NOT_EXIST_AT_INDEX    0xF0
 
-BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset) {
-  init(_eepromOffset);
+BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset, uint8_t _index) {
+  eepromOffset = _eepromOffset;
+  bondedFirstTimeState = true;
+  index = _index;
 }
 
 void  BlueCapPeripheral::BlueCapBond::clearBondData() {
@@ -21,8 +25,9 @@ uint8_t  BlueCapPeripheral::BlueCapBond::status() {
 }
 
 void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
-  DLOG(F("Initial eepromOffset:"));
+  DLOG(F("Initial eepromOffset and index:"));
   DLOG(eepromOffset, HEX);
+  DLOG(index, DEC);
   aciState->bonded = ACI_BOND_STATUS_FAILED;
 }
 
@@ -211,9 +216,4 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
   }
   DLOG(F("Finished reading message"));
   return addr;
-}
-
-void  BlueCapPeripheral::BlueCapBond::init(uint16_t _eepromOffset) {
-  eepromOffset = _eepromOffset;
-  bondedFirstTimeState = true;
 }
