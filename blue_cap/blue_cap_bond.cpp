@@ -10,10 +10,11 @@
 #define BOND_HEADER_BYTES               2
 #define BOND_DOES_NOT_EXIST_AT_INDEX    0xF0
 
-BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset, uint8_t _index) {
+BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset, uint8_t _maxBonds, uint8_t _index) {
   eepromOffset = _eepromOffset;
   bondedFirstTimeState = true;
   index = _index;
+  maxBonds = _maxBonds;
 }
 
 void  BlueCapPeripheral::BlueCapBond::clearBondData() {
@@ -25,12 +26,65 @@ uint8_t  BlueCapPeripheral::BlueCapBond::status() {
 }
 
 void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
-  DLOG(F("Initial eepromOffset and index:"));
+  DLOG(F("Initial eepromOffset, maxBonds and index:"));
   DLOG(eepromOffset, HEX);
   DLOG(index, DEC);
+  DLOG(maxBonds, HEX);
+  for (int i = 0; i < maxBonds; i++) {
+    DLOG(F("Header value and address:"));
+    DLOG(EEPROM.read(eepromOffset+i), HEX);
+    DLOG(eepromOffset+i, HEX);
+  }
   aciState->bonded = ACI_BOND_STATUS_FAILED;
 }
 
+bool BlueCapPeripheral::BlueCapBond::deviceStandByReceived(aci_state_t* aciState) {
+  bool result = true;
+  uint8_t eepromStatus = status();
+  DLOG(F("found eepromStatus:"));
+  DLOG(eepromStatus, HEX);
+  if (eepromStatus != 0x00) {
+    DLOG(F("Previous Bond present. Restoring"));
+    if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eepromStatus, aciState)) {
+      lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+      DLOG(F("Bond restored successfully"));
+    }
+    else {
+      DLOG(F("Bond restore failed. Delete the bond and try again."));
+      result = false;
+    }
+  } else if (ACI_BOND_STATUS_SUCCESS != aciState->bonded) {
+    lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+    DLOG(F("Advertising started : Waiting to be connected and bonded"));
+  } else {
+    lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+    DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
+  }
+  return result;
+}
+
+void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt_t* aciEvt) {
+  if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
+    if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
+      if (bondedFirstTimeState) {
+        bondedFirstTimeState = false;
+        if (readAndWriteBondData(aciState)) {
+          DLOG(F("Bond data read and store successful"));
+        } else {
+          DLOG(F("Bond data read and store failed"));
+        }
+      }
+    }
+    lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+    DLOG(F("Using existing bond stored in EEPROM."));
+    DLOG(F("Advertising started. Connecting."));
+  } else {
+    lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+    DLOG(F("Advertising started : Waiting to be connected and bonded"));
+  }
+}
+
+// private
 aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(uint8_t eepromStatus, aci_state_t* aciState) {
   aci_evt_t *aciEvt;
   uint16_t addr = eepromOffset + 1;
@@ -113,7 +167,7 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
         DLOG(0x80 | numDynMsgs, HEX);
         DLOG(eepromOffset, DEC);
         writeBondData(aciEvt, addr);
-        EEPROM.write(eepromOffset, 0x80 | numDynMsgs);
+        EEPROM.write(eepromOffset+index*BOND_HEADER_BYTES, 0x80 | numDynMsgs);
         status = true;
         break;
       } else if (!(ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status)) {
@@ -133,53 +187,6 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
   return status;
 }
 
-bool BlueCapPeripheral::BlueCapBond::deviceStandByReceived(aci_state_t* aciState) {
-  bool result = true;
-  uint8_t eepromStatus = status();
-  DLOG(F("found eepromStatus:"));
-  DLOG(eepromStatus, HEX);
-  if (eepromStatus != 0x00) {
-    DLOG(F("Previous Bond present. Restoring"));
-    if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eepromStatus, aciState)) {
-      lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
-      DLOG(F("Bond restored successfully"));
-    }
-    else {
-      DLOG(F("Bond restore failed. Delete the bond and try again."));
-      result = false;
-    }
-  } else if (ACI_BOND_STATUS_SUCCESS != aciState->bonded) {
-    lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-    DLOG(F("Advertising started : Waiting to be connected and bonded"));
-  } else {
-    lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
-    DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
-  }
-  return result;
-}
-
-void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt_t* aciEvt) {
-  if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
-    if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
-      if (bondedFirstTimeState) {
-        bondedFirstTimeState = false;
-        if (readAndWriteBondData(aciState)) {
-          DLOG(F("Bond data read and store successful"));
-        } else {
-          DLOG(F("Bond data read and store failed"));
-        }
-      }
-    }
-    lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
-    DLOG(F("Using existing bond stored in EEPROM."));
-    DLOG(F("Advertising started. Connecting."));
-  } else {
-    lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-    DLOG(F("Advertising started : Waiting to be connected and bonded"));
-  }
-}
-
-// private
 uint16_t  BlueCapPeripheral::BlueCapBond::writeBondData(aci_evt_t* evt, uint16_t addr) {
   DLOG(F("writeBondData"));
   DLOG(F("Message length:"));
@@ -217,3 +224,16 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
   DLOG(F("Finished reading message"));
   return addr;
 }
+
+void BlueCapPeripheral::BlueCapBond::writeDataSize(uint8_t dataSize) {
+  EEPROM.write(eepromOffset + index*BOND_HEADER_BYTES + 1, dataSize);
+}
+
+uint16_t BlueCapPeripheral::BlueCapBond::readDataOffset() {
+  uint16_t offset = eepromOffset + maxBonds*BOND_HEADER_BYTES;
+  for (int i = 0; i < index; i++) {
+    offset += EEPROM.read(eepromOffset + i*BOND_HEADER_BYTES + 1);
+  }
+  return offset;
+}
+

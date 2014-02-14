@@ -82,7 +82,7 @@ private:
 
     public:
 
-      BlueCapBond(uint16_t _eepromOffset, uint8_t _index);
+      BlueCapBond(uint16_t _eepromOffset, uint8_t _maxBonds, uint8_t _index);
       void clearBondData();
       void setup(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
@@ -91,6 +91,7 @@ private:
     private:
 
       uint16_t              eepromOffset;
+      uint16_t              maxBonds;
       hal_aci_evt_t         aciData;
       bool                  bondedFirstTimeState;
       uint8_t               index;
@@ -102,7 +103,8 @@ private:
       bool readAndWriteBondData(aci_state_t* aciState);
       uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
       uint16_t readBondData(hal_aci_data_t* aciCmd, uint16_t addr);
-
+      void writeDataSize(uint8_t dataSize);
+      uint16_t readDataOffset();
     };
 
 private:

@@ -112,7 +112,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
   if (maxBonds > 0) {
     bonds = (BlueCapBond**)malloc(maxBonds*sizeof(BlueCapBond*));
     for (int i = 0; i < maxBonds; i++) {
-      bonds[i] = new BlueCapBond(_eepromOffset, i);
+      bonds[i] = new BlueCapBond(_eepromOffset, i, maxBonds);
     }
   } else {
     bonds = NULL;
