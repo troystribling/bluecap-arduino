@@ -57,7 +57,7 @@ BlueCapPeripheral::~BlueCapPeripheral() {
 
 void  BlueCapPeripheral::clearBondData() {
   if (maxBonds > 0) {
-    bonds->clearBondData();
+    currentBond()->clearBondData();
   }
 }
 
@@ -115,7 +115,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
       bonds[i] = new BlueCapBond(_eepromOffset, i);
     }
   } else {
-    bonds = NULL:
+    bonds = NULL;
   }
 }
 
@@ -138,7 +138,7 @@ void BlueCapPeripheral::listen() {
 					case ACI_DEVICE_STANDBY: {
 						DLOG(F("ACI_DEVICE_STANDBY"));
             if (maxBonds > 0) {
-              if (bonds->deviceStandByReceived(&aciState)) {
+              if (currentBond()->deviceStandByReceived(&aciState)) {
                 didStartAdvertising();
               }
             } else {
@@ -205,7 +205,7 @@ void BlueCapPeripheral::listen() {
 				DLOG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
         if (maxBonds > 0) {
-          bonds->disconnected(&aciState, aciEvt);
+          currentBond()->disconnected(&aciState, aciEvt);
         } else {
   				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
   				DLOG(F("Advertising started"));
@@ -307,7 +307,7 @@ void BlueCapPeripheral::waitForCmdComplete () {
 }
 
 // BlueCapBond
-BlueCapBond* BlueCapPeripheral::getCurrentBond() {
+BlueCapPeripheral::BlueCapBond* BlueCapPeripheral::currentBond() {
   BlueCapBond* bond = NULL;
   if (currentBondIndex < maxBonds){
     bond = bonds[currentBondIndex];

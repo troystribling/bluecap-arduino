@@ -57,7 +57,7 @@ private:
   bool                            ack;
   bool                            timingChangeDone;
   bool                            cmdComplete;
-  uint8_t                         currentBond;
+  uint8_t                         currentBondIndex;
   uint8_t*                        rxPipes;
   aci_state_t                     aciState;
   hal_aci_evt_t                   aciData;
@@ -82,7 +82,7 @@ private:
 
     public:
 
-      BlueCapBond(uint16_t _eepromOffset);
+      BlueCapBond(uint16_t _eepromOffset, uint8_t _index);
       void clearBondData();
       void setup(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
@@ -111,7 +111,7 @@ private:
 
 private:
 
-  BlueCapBond* getCurrentBond();
+  BlueCapBond* currentBond();
   void nextBond();
 
 };
