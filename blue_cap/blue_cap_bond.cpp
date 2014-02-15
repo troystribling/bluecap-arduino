@@ -9,11 +9,11 @@
 
 #define BOND_DOES_NOT_EXIST_AT_INDEX    0xF0
 
-BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset, uint8_t _maxBonds, uint8_t _index) {
-  eepromOffset = _eepromOffset;
+BlueCapPeripheral::BlueCapBond::BlueCapBond() {
+  eepromOffset = 0;
   bondedFirstTimeState = true;
-  index = _index;
-  maxBonds = _maxBonds;
+  index = 0;
+  maxBonds = 0;
 }
 
 void  BlueCapPeripheral::BlueCapBond::clearBondData() {

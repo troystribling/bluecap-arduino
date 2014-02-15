@@ -50,14 +50,14 @@ BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_
 }
 
 BlueCapPeripheral::~BlueCapPeripheral() {
-  for(int i = 0; i < maxBonds; i++) {
-    delete bonds[i];
+  if (maxBonds > 0) {
+    delete[] bonds;
   }
 }
 
 void  BlueCapPeripheral::clearBondData() {
   for(int i = 0; i < maxBonds; i++) {
-    bonds[i]->clearBondData();
+    bonds[i].clearBondData();
   }
 }
 
@@ -110,9 +110,11 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
   rdynPin = _rdynPin;
   maxBonds = _maxBonds;
   if (maxBonds > 0) {
-    bonds = (BlueCapBond**)malloc(maxBonds*sizeof(BlueCapBond*));
+    bonds = new BlueCapBond[maxBonds];
     for (int i = 0; i < maxBonds; i++) {
-      bonds[i] = new BlueCapBond(_eepromOffset, maxBonds, i);
+      bonds[i].index = i;
+      bonds[i].eepromOffset = _eepromOffset;
+      bonds[i].maxBonds = maxBonds;
     }
   } else {
     bonds = NULL;
@@ -138,7 +140,7 @@ void BlueCapPeripheral::listen() {
 					case ACI_DEVICE_STANDBY: {
 						DLOG(F("ACI_DEVICE_STANDBY"));
             if (maxBonds > 0) {
-              if (currentBond()->deviceStandByReceived(&aciState)) {
+              if (bonds[currentBondIndex].deviceStandByReceived(&aciState)) {
                 didStartAdvertising();
               }
             } else {
@@ -205,7 +207,7 @@ void BlueCapPeripheral::listen() {
 				DLOG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
         if (maxBonds > 0) {
-          currentBond()->disconnected(&aciState, aciEvt);
+          bonds[currentBondIndex].disconnected(&aciState, aciEvt);
         } else {
   				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
   				DLOG(F("Advertising started"));
@@ -246,6 +248,9 @@ void BlueCapPeripheral::listen() {
 }
 
 void BlueCapPeripheral::setup() {
+  DLOG(F("BlueCapPeripheral::begin"));
+  DLOG(F("bonds memory allocation:"));
+  DLOG(maxBonds*sizeof(BlueCapBond*), DEC);
 	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
 	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
 	aciState.aci_setup_info.setup_msgs         					= setUpMessages;
@@ -275,7 +280,7 @@ void BlueCapPeripheral::setup() {
 	delay(100);
 
   for(int i = 0; i < maxBonds; i++) {
-    bonds[i]->setup(&aciState);
+    bonds[i].setup(&aciState);
   }
 }
 
@@ -307,15 +312,7 @@ void BlueCapPeripheral::waitForCmdComplete () {
 }
 
 // BlueCapBond
-BlueCapPeripheral::BlueCapBond* BlueCapPeripheral::currentBond() {
-  BlueCapBond* bond = NULL;
-  if (currentBondIndex < maxBonds){
-    bond = bonds[currentBondIndex];
-  }
-  return bond;
-}
-
-void BlueCapPeripheral::nextBond() {
+void BlueCapPeripheral::nextBondIndex() {
   currentBondIndex++;
   if (currentBondIndex > maxBonds - 1) {
     currentBondIndex = 0;

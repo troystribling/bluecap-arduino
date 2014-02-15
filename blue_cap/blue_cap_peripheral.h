@@ -84,13 +84,13 @@ private:
 
     public:
 
-      BlueCapBond(uint16_t _eepromOffset, uint8_t _maxBonds, uint8_t _index);
+      BlueCapBond();
       void clearBondData();
       void setup(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
       void disconnected(aci_state_t* aciState, aci_evt_t* aciEvt);
 
-    private:
+    public:
 
       uint16_t              eepromOffset;
       uint16_t              maxBonds;
@@ -112,12 +112,11 @@ private:
 
 private:
 
-  BlueCapBond**             bonds;
+  BlueCapBond*              bonds;
 
 private:
 
-  BlueCapBond* currentBond();
-  void nextBond();
+  void nextBondIndex();
 
 };
 
