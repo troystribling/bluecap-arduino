@@ -87,7 +87,7 @@ void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt
 // private
 aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(uint8_t eepromStatus, aci_state_t* aciState) {
   aci_evt_t *aciEvt;
-  uint16_t addr = eepromOffset + 1;
+  uint16_t addr = readBondDataOffset();
   uint8_t numDynMsgs = eepromStatus & 0x7F;
   hal_aci_data_t aciCmd;
 
@@ -166,8 +166,8 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
         DLOG(F("readAndWriteBondData transaction complete, status, eepromOffset"));
         DLOG(0x80 | numDynMsgs, HEX);
         DLOG(eepromOffset, DEC);
-        writeBondData(aciEvt, addr);
-        EEPROM.write(eepromOffset+index*BOND_HEADER_BYTES, 0x80 | numDynMsgs);
+        addr = writeBondData(aciEvt, addr);
+        writeBondDataHeader(addr, numDynMsgs);
         status = true;
         break;
       } else if (!(ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status)) {
@@ -225,15 +225,22 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
   return addr;
 }
 
-void BlueCapPeripheral::BlueCapBond::writeDataSize(uint8_t dataSize) {
-  EEPROM.write(eepromOffset + index*BOND_HEADER_BYTES + 1, dataSize);
+void BlueCapPeripheral::BlueCapBond::writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs) {
+  uint8_t dataSize = dataAddress - readBondDataOffset() - 1;
+  uint16_t headerAddr = eepromOffset + index*BOND_HEADER_BYTES;
+  EEPROM.write(headerAddr, 0x80 | numDynMsgs);
+  EEPROM.write(headerAddr + 1, dataSize);
+  DLOG(F("writeBondDataSize dataSize"));
+  DLOG(dataSize, DEC);
 }
 
-uint16_t BlueCapPeripheral::BlueCapBond::readDataOffset() {
+uint16_t BlueCapPeripheral::BlueCapBond::readBondDataOffset() {
   uint16_t offset = eepromOffset + maxBonds*BOND_HEADER_BYTES;
   for (int i = 0; i < index; i++) {
     offset += EEPROM.read(eepromOffset + i*BOND_HEADER_BYTES + 1);
   }
+  DLOG(F("readBondDataOffset offset"));
+  DLOG(offset, DEC);
   return offset;
 }
 
