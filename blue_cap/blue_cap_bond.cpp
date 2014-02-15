@@ -7,7 +7,6 @@
 
 #include "blue_cap_peripheral.h"
 
-#define BOND_HEADER_BYTES               2
 #define BOND_DOES_NOT_EXIST_AT_INDEX    0xF0
 
 BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset, uint8_t _maxBonds, uint8_t _index) {
@@ -18,21 +17,24 @@ BlueCapPeripheral::BlueCapBond::BlueCapBond(uint16_t _eepromOffset, uint8_t _max
 }
 
 void  BlueCapPeripheral::BlueCapBond::clearBondData() {
-    EEPROM.write(eepromOffset, 0x00);
-}
-
-uint8_t  BlueCapPeripheral::BlueCapBond::status() {
-  return EEPROM.read(eepromOffset);
+    DLOG(F("clearBondData eepromOffset, index, maxBonds, offset:"));
+    DLOG(eepromOffset, HEX);
+    DLOG(index, HEX);
+    DLOG(maxBonds, HEX);
+    DLOG(offset(), HEX);
+    EEPROM.write(offset(), 0x00);
 }
 
 void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
-  DLOG(F("Initial eepromOffset, maxBonds and index:"));
+  DLOG(F("Initial eepromOffset, index, maxBonds and offset:"));
   DLOG(eepromOffset, HEX);
   DLOG(index, DEC);
   DLOG(maxBonds, HEX);
+  DLOG(offset());
   for (int i = 0; i < maxBonds; i++) {
-    DLOG(F("Header value and address:"));
+    DLOG(F("Header status, size and address:"));
     DLOG(EEPROM.read(eepromOffset+i), HEX);
+    DLOG(EEPROM.read(eepromOffset+i+1), DEC);
     DLOG(eepromOffset+i, HEX);
   }
   aciState->bonded = ACI_BOND_STATUS_FAILED;
@@ -145,7 +147,7 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
   bool status = false;
   aci_evt_t* aciEvt = NULL;
   uint8_t numDynMsgs = 0;
-  uint8_t addr = eepromOffset + 1;
+  uint16_t addr = readBondDataOffset();
 
   lib_aci_read_dynamic_data();
   numDynMsgs++;
@@ -163,9 +165,7 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
         status = false;
         break;
       } else if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
-        DLOG(F("readAndWriteBondData transaction complete, status, eepromOffset"));
-        DLOG(0x80 | numDynMsgs, HEX);
-        DLOG(eepromOffset, DEC);
+        DLOG(F("readAndWriteBondData transaction complete"));
         addr = writeBondData(aciEvt, addr);
         writeBondDataHeader(addr, numDynMsgs);
         status = true;
@@ -173,7 +173,7 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
       } else if (!(ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status)) {
         DLOG(F("readAndWriteBondData transaction failed:"));
         DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
-        EEPROM.write(eepromOffset, 0x00);
+        clearBondData();
         status = false;
         break;
       } else {
@@ -226,21 +226,30 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
 }
 
 void BlueCapPeripheral::BlueCapBond::writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs) {
-  uint8_t dataSize = dataAddress - readBondDataOffset() - 1;
-  uint16_t headerAddr = eepromOffset + index*BOND_HEADER_BYTES;
-  EEPROM.write(headerAddr, 0x80 | numDynMsgs);
-  EEPROM.write(headerAddr + 1, dataSize);
-  DLOG(F("writeBondDataSize dataSize"));
+  uint8_t dataSize = dataAddress - readBondDataOffset();
+  EEPROM.write(offset(), 0x80 | numDynMsgs);
+  EEPROM.write(offset() + 1, dataSize);
+  DLOG(F("writeBondDataHeader dataSize, status, dataAddress, readBondDataOffset"));
   DLOG(dataSize, DEC);
+  DLOG(0x80 | numDynMsgs, HEX);
+  DLOG(dataAddress, DEC);
+  DLOG(readBondDataOffset(), DEC);
 }
 
 uint16_t BlueCapPeripheral::BlueCapBond::readBondDataOffset() {
-  uint16_t offset = eepromOffset + maxBonds*BOND_HEADER_BYTES;
+  uint16_t bondOffset = eepromOffset + maxBonds*BOND_HEADER_BYTES;
   for (int i = 0; i < index; i++) {
-    offset += EEPROM.read(eepromOffset + i*BOND_HEADER_BYTES + 1);
+    bondOffset += EEPROM.read(eepromOffset + i*BOND_HEADER_BYTES + 1);
   }
-  DLOG(F("readBondDataOffset offset"));
-  DLOG(offset, DEC);
-  return offset;
+  DLOG(F("readBondDataOffset offset:"));
+  DLOG(bondOffset, DEC);
+  return bondOffset;
 }
 
+uint8_t  BlueCapPeripheral::BlueCapBond::status() {
+  return EEPROM.read(offset());
+}
+
+uint16_t BlueCapPeripheral::BlueCapBond::offset() {
+  return eepromOffset + index*BOND_HEADER_BYTES;
+}

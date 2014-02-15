@@ -3,6 +3,8 @@
 
 #include "nordic/lib_aci.h"
 
+#define BOND_HEADER_BYTES   2
+
 class BlueCapPeripheral {
 
 public:
@@ -105,6 +107,7 @@ private:
       uint16_t readBondData(hal_aci_data_t* aciCmd, uint16_t addr);
       void writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs);
       uint16_t readBondDataOffset();
+      uint16_t offset();
     };
 
 private:
