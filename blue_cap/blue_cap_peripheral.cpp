@@ -61,6 +61,9 @@ void  BlueCapPeripheral::clearBondData() {
   }
 }
 
+void BlueCapPeripheral::addBond() {
+}
+
 REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "sendAck")
 REMOTE_COMMAND(sendNack(uint8_t pipe, const uint8_t errorCode), lib_aci_send_nack(&aciState, pipe, errorCode), "sendNack")
 REMOTE_COMMAND(sendData(uint8_t pipe, uint8_t* value, uint8_t size), lib_aci_send_data(pipe, value, size), "sendData")
@@ -112,9 +115,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
   if (maxBonds > 0) {
     bonds = new BlueCapBond[maxBonds];
     for (int i = 0; i < maxBonds; i++) {
-      bonds[i].index = i;
-      bonds[i].eepromOffset = _eepromOffset;
-      bonds[i].maxBonds = maxBonds;
+      bonds[i].init(_eepromOffset, _maxBonds, i);
     }
   } else {
     bonds = NULL;
@@ -249,8 +250,9 @@ void BlueCapPeripheral::listen() {
 
 void BlueCapPeripheral::setup() {
   DLOG(F("BlueCapPeripheral::begin"));
-  DLOG(F("bonds memory allocation:"));
-  DLOG(maxBonds*sizeof(BlueCapBond*), DEC);
+  DLOG(F("Number of bonded devices:"));
+  DLOG(numberOfBondedDevices(), DEC);
+
 	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
 	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
 	aciState.aci_setup_info.setup_msgs         					= setUpMessages;
@@ -311,10 +313,20 @@ void BlueCapPeripheral::waitForCmdComplete () {
 	cmdComplete = false;
 }
 
+uint8_t BlueCapPeripheral::numberOfBondedDevices() {
+  uint8_t count = 0;
+  for (int i = 0; i < maxBonds; i++) {
+    if (bonds[i].bonded) {
+      count++;
+    }
+  }
+  return count;
+}
+
 // BlueCapBond
 void BlueCapPeripheral::nextBondIndex() {
   currentBondIndex++;
-  if (currentBondIndex > maxBonds - 1) {
+  if (currentBondIndex > numberOfBondedDevices() - 1) {
     currentBondIndex = 0;
   }
 }

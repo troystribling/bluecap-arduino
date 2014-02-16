@@ -19,6 +19,7 @@ public:
   virtual void loop(){listen();};
 
   void clearBondData();
+  void addBond();
 
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
@@ -69,6 +70,7 @@ private:
 
 private:
 
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
   void listen();
   void setup();
   void incrementCredit();
@@ -76,7 +78,7 @@ private:
   void waitForCredit();
   void waitForAck();
   void waitForCmdComplete();
-  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
+  uint8_t numberOfBondedDevices();
 
 private:
 
@@ -85,6 +87,7 @@ private:
     public:
 
       BlueCapBond();
+      void init(uint16_t _eepromOffset, uint16_t _maxBonds, uint8_t _index);
       void clearBondData();
       void setup(aci_state_t* aciState);
       bool deviceStandByReceived(aci_state_t* aciState);
@@ -95,7 +98,7 @@ private:
       uint16_t              eepromOffset;
       uint16_t              maxBonds;
       hal_aci_evt_t         aciData;
-      bool                  bondedFirstTimeState;
+      bool                  bonded;
       uint8_t               index;
 
     private:

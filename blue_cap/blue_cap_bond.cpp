@@ -10,10 +10,17 @@
 #define BOND_DOES_NOT_EXIST_AT_INDEX    0xF0
 
 BlueCapPeripheral::BlueCapBond::BlueCapBond() {
-  eepromOffset = 0;
-  bondedFirstTimeState = true;
-  index = 0;
-  maxBonds = 0;
+}
+
+void BlueCapPeripheral::BlueCapBond::init(uint16_t _eepromOffset, uint16_t _maxBonds, uint8_t _index) {
+  eepromOffset = _eepromOffset;
+  index = _index;
+  maxBonds = _maxBonds;
+  if (status() == 0x00) {
+    bonded = false;
+  } else {
+    bonded = true;
+  }
 }
 
 void  BlueCapPeripheral::BlueCapBond::clearBondData() {
@@ -67,10 +74,11 @@ bool BlueCapPeripheral::BlueCapBond::deviceStandByReceived(aci_state_t* aciState
 
 void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt_t* aciEvt) {
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
+    aciState->bonded = ACI_BOND_STATUS_FAILED;
     if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
-      if (bondedFirstTimeState) {
-        bondedFirstTimeState = false;
+      if (!bonded) {
         if (readAndWriteBondData(aciState)) {
+          bonded = true;
           DLOG(F("Bond data read and store successful"));
         } else {
           DLOG(F("Bond data read and store failed"));
@@ -122,7 +130,7 @@ aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(uint8_t eepro
           DLOG(F("Command status:"));
           DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
-            bondedFirstTimeState = false;
+            bonded = true;
             aciState->bonded = ACI_BOND_STATUS_SUCCESS;
             DLOG(F("Restore of bond data completed successfully"));
             return ACI_STATUS_TRANSACTION_COMPLETE;
