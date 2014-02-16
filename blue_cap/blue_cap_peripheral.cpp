@@ -62,6 +62,10 @@ void  BlueCapPeripheral::clearBondData() {
 }
 
 void BlueCapPeripheral::addBond() {
+  currentBondIndex = numberOfBondedDevices();
+  if (currentBondIndex > maxBonds - 1) {
+    currentBondIndex = 0;
+  }
 }
 
 REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "sendAck")
@@ -141,7 +145,7 @@ void BlueCapPeripheral::listen() {
 					case ACI_DEVICE_STANDBY: {
 						DLOG(F("ACI_DEVICE_STANDBY"));
             if (maxBonds > 0) {
-              if (bonds[currentBondIndex].deviceStandByReceived(&aciState)) {
+              if (bonds[currentBondIndex].restoreAndAdvertise(&aciState)) {
                 didStartAdvertising();
               }
             } else {
@@ -208,12 +212,21 @@ void BlueCapPeripheral::listen() {
 				DLOG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
         if (maxBonds > 0) {
-          bonds[currentBondIndex].disconnected(&aciState, aciEvt);
+          if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
+              DLOG(F("ACI_STATUS_ERROR_ADVT_TIMEOUT"));
+              if (bonds[currentBondIndex].restoreAndAdvertise(&aciState)) {
+                nextBondIndex();
+                didStartAdvertising();
+              }
+          } else {
+            bonds[currentBondIndex].writeIfBondedAndAdvertise(&aciState, aciEvt);
+            didStartAdvertising();
+          }
         } else {
   				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+          didStartAdvertising();
   				DLOG(F("Advertising started"));
         }
-        didStartAdvertising();
 				break;
 
 			case ACI_EVT_DATA_RECEIVED: {
@@ -329,4 +342,6 @@ void BlueCapPeripheral::nextBondIndex() {
   if (currentBondIndex > numberOfBondedDevices() - 1) {
     currentBondIndex = 0;
   }
+  DLOG(F("nextBondIndex:"));
+  DLOG(currentBondIndex, DEC);
 }

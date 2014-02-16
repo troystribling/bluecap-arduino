@@ -47,16 +47,13 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
   aciState->bonded = ACI_BOND_STATUS_FAILED;
 }
 
-bool BlueCapPeripheral::BlueCapBond::deviceStandByReceived(aci_state_t* aciState) {
+bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) {
   bool result = true;
-  uint8_t eepromStatus = status();
-  DLOG(F("found eepromStatus:"));
-  DLOG(eepromStatus, HEX);
-  if (eepromStatus != 0x00) {
+  if (bonded) {
     DLOG(F("Previous Bond present. Restoring"));
-    if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(eepromStatus, aciState)) {
+    if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
       lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
-      DLOG(F("Bond restored successfully"));
+      DLOG(F("Bond restored successfully: Waiting for connection"));
     }
     else {
       DLOG(F("Bond restore failed. Delete the bond and try again."));
@@ -64,15 +61,15 @@ bool BlueCapPeripheral::BlueCapBond::deviceStandByReceived(aci_state_t* aciState
     }
   } else if (ACI_BOND_STATUS_SUCCESS != aciState->bonded) {
     lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-    DLOG(F("Advertising started : Waiting to be connected and bonded"));
+    DLOG(F("Advertising started : Waiting for connection and bonding"));
   } else {
     lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
-    DLOG(F("Already bonded : Advertising started : Waiting to be connected"));
+    DLOG(F("Already bonded : Advertising started : Waiting for connection"));
   }
   return result;
 }
 
-void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt_t* aciEvt) {
+void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciState, aci_evt_t* aciEvt) {
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
     aciState->bonded = ACI_BOND_STATUS_FAILED;
     if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
@@ -87,18 +84,18 @@ void BlueCapPeripheral::BlueCapBond::disconnected(aci_state_t* aciState, aci_evt
     }
     lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
     DLOG(F("Using existing bond stored in EEPROM."));
-    DLOG(F("Advertising started. Connecting."));
+    DLOG(F("Advertising started. Waiting for connection"));
   } else {
     lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
-    DLOG(F("Advertising started : Waiting to be connected and bonded"));
+    DLOG(F("Advertising started : Waiting for connection and bonding"));
   }
 }
 
 // private
-aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(uint8_t eepromStatus, aci_state_t* aciState) {
+aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(aci_state_t* aciState) {
   aci_evt_t *aciEvt;
   uint16_t addr = readBondDataOffset();
-  uint8_t numDynMsgs = eepromStatus & 0x7F;
+  uint8_t numDynMsgs = status() & 0x7F;
   hal_aci_data_t aciCmd;
 
   DLOG(F("restoreBondData dynamic messages:"));
