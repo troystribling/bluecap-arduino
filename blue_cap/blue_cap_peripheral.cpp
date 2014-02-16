@@ -150,7 +150,7 @@ void BlueCapPeripheral::listen() {
               }
             } else {
               DLOG(F("No Bond present in EEPROM."));
-  						lib_aci_connect(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+  						lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
   						didStartAdvertising();
   						DLOG(F("Advertising started"));
             }
@@ -223,7 +223,7 @@ void BlueCapPeripheral::listen() {
             didStartAdvertising();
           }
         } else {
-  				lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+  				lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
           didStartAdvertising();
   				DLOG(F("Advertising started"));
         }

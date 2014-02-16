@@ -52,7 +52,7 @@ bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) 
   if (bonded) {
     DLOG(F("Previous Bond present. Restoring"));
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
-      lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+      lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
       DLOG(F("Bond restored successfully: Waiting for connection"));
     }
     else {
@@ -60,10 +60,10 @@ bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) 
       result = false;
     }
   } else if (ACI_BOND_STATUS_SUCCESS != aciState->bonded) {
-    lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+    lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
     DLOG(F("Advertising started : Waiting for connection and bonding"));
   } else {
-    lib_aci_connect(100/* in seconds */, 0x0020 /* advertising interval 20ms*/);
+    lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
     DLOG(F("Already bonded : Advertising started : Waiting for connection"));
   }
   return result;
@@ -82,11 +82,11 @@ void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciS
         }
       }
     }
-    lib_aci_connect(180/* in seconds */, 0x0100 /* advertising interval 100ms*/);
+    lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
     DLOG(F("Using existing bond stored in EEPROM."));
     DLOG(F("Advertising started. Waiting for connection"));
   } else {
-    lib_aci_bond(180/* in seconds */, 0x0050 /* advertising interval 50ms*/);
+    lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
     DLOG(F("Advertising started : Waiting for connection and bonding"));
   }
 }
