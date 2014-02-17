@@ -110,6 +110,7 @@ private:
       bool readAndWriteBondData(aci_state_t* aciState);
       uint16_t writeBondData(aci_evt_t* evt, uint16_t addr);
       uint16_t readBondData(hal_aci_data_t* aciCmd, uint16_t addr);
+      void connectOrBond();
       void writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs);
       uint16_t readBondDataOffset();
       uint16_t offset();

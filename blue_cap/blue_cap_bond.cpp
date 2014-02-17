@@ -49,27 +49,25 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
 
 bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) {
   bool result = true;
+  DLOG(F("restoreAndAdvertise"));
   if (bonded) {
     DLOG(F("Previous Bond present. Restoring"));
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
-      lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
       DLOG(F("Bond restored successfully: Waiting for connection"));
     }
     else {
       DLOG(F("Bond restore failed. Delete the bond and try again."));
       result = false;
     }
-  } else if (ACI_BOND_STATUS_SUCCESS != aciState->bonded) {
-    lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
-    DLOG(F("Advertising started : Waiting for connection and bonding"));
-  } else {
-    lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
-    DLOG(F("Already bonded : Advertising started : Waiting for connection"));
+  }
+  if (result) {
+    connectOrBond();
   }
   return result;
 }
 
 void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciState, aci_evt_t* aciEvt) {
+  DLOG(F("writeIfBondedAndAdvertise"));
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
     aciState->bonded = ACI_BOND_STATUS_FAILED;
     if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
@@ -82,13 +80,9 @@ void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciS
         }
       }
     }
-    lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
     DLOG(F("Using existing bond stored in EEPROM."));
-    DLOG(F("Advertising started. Waiting for connection"));
-  } else {
-    lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
-    DLOG(F("Advertising started : Waiting for connection and bonding"));
   }
+  connectOrBond();
 }
 
 // private
@@ -228,6 +222,16 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
   }
   DLOG(F("Finished reading message"));
   return addr;
+}
+
+void BlueCapPeripheral::BlueCapBond::connectOrBond() {
+  if (bonded) {
+    lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
+    DLOG(F("Advertising started. Waiting for connection"));
+  } else {
+    lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
+    DLOG(F("Advertising started : Waiting for connection and bonding"));
+  }
 }
 
 void BlueCapPeripheral::BlueCapBond::writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs) {
