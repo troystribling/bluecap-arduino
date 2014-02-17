@@ -61,13 +61,22 @@ void  BlueCapPeripheral::clearBondData() {
   }
 }
 
-void BlueCapPeripheral::addBond() {
-  currentBondIndex = numberOfBondedDevices();
-  if (currentBondIndex > maxBonds - 1) {
-    currentBondIndex = 0;
+bool BlueCapPeripheral::addBond() {
+  bool result = false;
+  if (numberOfNewBonds() == 0) {
+    uint8_t bondedCount = numberOfBondedDevices();
+    if (bondedCount < maxBonds) {
+      result = true;
+      bonds[bondedCount].newBond = true;
+      DLOG(F("addBond, index:"));
+      DLOG(bondedCount);
+    } else {
+      DLOG(F("Error(addBond): No more bonds"));
+    }
+  } else {
+    DLOG(F("Error(addBond): New bond exists. only one new bond at a time"));
   }
-  DLOG(F("addBond, currentBondIndex:"));
-  DLOG(currentBondIndex);
+  return result;
 }
 
 REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "sendAck")
@@ -189,6 +198,9 @@ void BlueCapPeripheral::listen() {
 				DLOG(aciState.bonded, HEX);
 				if (aciState.bonded == ACI_BOND_STATUS_SUCCESS) {
 					DLOG(F("Bond successful"));
+          if (maxBonds > 0) {
+            bonds[currentBondIndex].newBond = false;
+          }
 					didBond();
 				} else {
 					DLOG(F("Bond failed"));
@@ -328,16 +340,6 @@ void BlueCapPeripheral::waitForCmdComplete () {
 	cmdComplete = false;
 }
 
-uint8_t BlueCapPeripheral::numberOfBondedDevices() {
-  uint8_t count = 0;
-  for (int i = 0; i < maxBonds; i++) {
-    if (bonds[i].bonded) {
-      count++;
-    }
-  }
-  return count;
-}
-
 // BlueCapBond
 void BlueCapPeripheral::nextBondIndex() {
   currentBondIndex++;
@@ -346,4 +348,24 @@ void BlueCapPeripheral::nextBondIndex() {
   }
   DLOG(F("nextBondIndex:"));
   DLOG(currentBondIndex, DEC);
+}
+
+uint8_t BlueCapPeripheral::numberOfBondedDevices() {
+  uint8_t count = 0;
+  for (int i = 0; i < maxBonds; i++) {
+    if (bonds[i].bonded || bonds[i].newBond) {
+      count++;
+    }
+  }
+  return count;
+}
+
+uint8_t BlueCapPeripheral::numberOfNewBonds() {
+  uint8_t count = 0;
+  for (int i = 0; i < maxBonds; i++) {
+    if (bonds[i].newBond) {
+      count++;
+    }
+  }
+  return count;
 }

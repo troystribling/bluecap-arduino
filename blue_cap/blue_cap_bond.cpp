@@ -16,6 +16,7 @@ void BlueCapPeripheral::BlueCapBond::init(uint16_t _eepromOffset, uint16_t _maxB
   eepromOffset = _eepromOffset;
   index = _index;
   maxBonds = _maxBonds;
+  newBond = false;
   if (status() == 0x00) {
     bonded = false;
   } else {
@@ -37,19 +38,18 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
   DLOG(eepromOffset, HEX);
   DLOG(index, DEC);
   DLOG(maxBonds, HEX);
-  DLOG(offset());
-  for (int i = 0; i < maxBonds; i++) {
-    DLOG(F("Header status, size and address:"));
-    DLOG(EEPROM.read(eepromOffset+i), HEX);
-    DLOG(EEPROM.read(eepromOffset+i+1), DEC);
-    DLOG(eepromOffset+i, HEX);
-  }
+  DLOG(offset(), HEX);
+  DLOG(F("Header status, size and  bonded:"));
+  DLOG(EEPROM.read(offset()), HEX);
+  DLOG(EEPROM.read(offset()+1), DEC);
+  DLOG(bonded, BIN);
   aciState->bonded = ACI_BOND_STATUS_FAILED;
 }
 
 bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) {
   bool result = true;
-  DLOG(F("restoreAndAdvertise"));
+  DLOG(F("restoreAndAdvertise, index:"));
+  DLOG(index);
   if (bonded) {
     DLOG(F("Previous Bond present. Restoring"));
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
@@ -67,11 +67,15 @@ bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) 
 }
 
 void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciState, aci_evt_t* aciEvt) {
-  DLOG(F("writeIfBondedAndAdvertise"));
+  DLOG(F("writeIfBondedAndAdvertise, index:"));
+  DLOG(index);
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
+    DLOG(F("ACI_BOND_STATUS_SUCCESS"));
     aciState->bonded = ACI_BOND_STATUS_FAILED;
     if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
+      DLOG(F("ACI_STATUS_EXTENDED"));
       if (!bonded) {
+        DLOG(F("not bonded"));
         if (readAndWriteBondData(aciState)) {
           bonded = true;
           DLOG(F("Bond data read and store successful"));

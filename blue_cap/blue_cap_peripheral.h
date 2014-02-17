@@ -21,7 +21,7 @@ public:
   virtual void loop(){listen();};
 
   void clearBondData();
-  void addBond();
+  bool addBond();
 
   bool sendAck(const uint8_t pipe);
   bool sendNack(const uint8_t pipe, const uint8_t error_code);
@@ -81,6 +81,7 @@ private:
   void waitForAck();
   void waitForCmdComplete();
   uint8_t numberOfBondedDevices();
+  uint8_t numberOfNewBonds();
 
 private:
 
@@ -102,6 +103,7 @@ private:
       hal_aci_evt_t         aciData;
       bool                  bonded;
       uint8_t               index;
+      bool                  newBond;
 
     private:
 
