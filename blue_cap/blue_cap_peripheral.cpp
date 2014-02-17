@@ -66,6 +66,8 @@ void BlueCapPeripheral::addBond() {
   if (currentBondIndex > maxBonds - 1) {
     currentBondIndex = 0;
   }
+  DLOG(F("addBond, currentBondIndex:"));
+  DLOG(currentBondIndex);
 }
 
 REMOTE_COMMAND(sendAck(uint8_t pipe), lib_aci_send_ack(&aciState, pipe), "sendAck")
@@ -215,13 +217,13 @@ void BlueCapPeripheral::listen() {
           if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
               DLOG(F("ACI_STATUS_ERROR_ADVT_TIMEOUT"));
               if (bonds[currentBondIndex].restoreAndAdvertise(&aciState)) {
-                nextBondIndex();
                 didStartAdvertising();
               }
           } else {
             bonds[currentBondIndex].writeIfBondedAndAdvertise(&aciState, aciEvt);
             didStartAdvertising();
           }
+          nextBondIndex();
         } else {
   				lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
           didStartAdvertising();
