@@ -46,7 +46,7 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
   aciState->bonded = ACI_BOND_STATUS_FAILED;
 }
 
-bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) {
+bool BlueCapPeripheral::BlueCapBond::restoreIfBonded(aci_state_t* aciState) {
   bool result = true;
   DLOG(F("restoreAndAdvertise, index:"));
   DLOG(index);
@@ -60,13 +60,10 @@ bool BlueCapPeripheral::BlueCapBond::restoreAndAdvertise(aci_state_t* aciState) 
       result = false;
     }
   }
-  if (result) {
-    connectOrBond();
-  }
   return result;
 }
 
-void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciState, aci_evt_t* aciEvt) {
+void BlueCapPeripheral::BlueCapBond::writeIfBonded(aci_state_t* aciState, aci_evt_t* aciEvt) {
   DLOG(F("writeIfBondedAndAdvertise, index:"));
   DLOG(index);
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
@@ -86,7 +83,6 @@ void BlueCapPeripheral::BlueCapBond::writeIfBondedAndAdvertise(aci_state_t* aciS
     }
     DLOG(F("Using existing bond stored in EEPROM."));
   }
-  connectOrBond();
 }
 
 // private

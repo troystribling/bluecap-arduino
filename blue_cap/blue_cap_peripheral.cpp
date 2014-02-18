@@ -156,7 +156,8 @@ void BlueCapPeripheral::listen() {
 					case ACI_DEVICE_STANDBY: {
 						DLOG(F("ACI_DEVICE_STANDBY"));
             if (maxBonds > 0) {
-              if (bonds[currentBondIndex].restoreAndAdvertise(&aciState)) {
+              if (bonds[currentBondIndex].restoreIfBonded(&aciState)) {
+                bonds[currentBondIndex].connectOrBond();
                 didStartAdvertising();
               }
             } else {
@@ -228,14 +229,14 @@ void BlueCapPeripheral::listen() {
         if (maxBonds > 0) {
           if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
               DLOG(F("ACI_STATUS_ERROR_ADVT_TIMEOUT"));
-              if (bonds[currentBondIndex].restoreAndAdvertise(&aciState)) {
-                didStartAdvertising();
-              }
           } else {
-            bonds[currentBondIndex].writeIfBondedAndAdvertise(&aciState, aciEvt);
-            didStartAdvertising();
+            bonds[currentBondIndex].writeIfBonded(&aciState, aciEvt);
           }
           nextBondIndex();
+          if (bonds[currentBondIndex].restoreIfBonded(&aciState)) {
+            bonds[currentBondIndex].connectOrBond();
+            didStartAdvertising();
+          }
         } else {
   				lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
           didStartAdvertising();
