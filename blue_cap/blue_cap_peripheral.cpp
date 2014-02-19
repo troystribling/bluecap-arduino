@@ -6,36 +6,6 @@
 
 #include "blue_cap_peripheral.h"
 
-#define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
-  bool status = false;                                                  \
-  DLOG(F(Z));                                                           \
-  if (isPipeAvailable(pipe)) {                                          \
-    waitForCredit();                                                    \
-    status = Y;                                                         \
-  }                                                                     \
-  if (status) {                                                         \
-    waitForAck();                                                       \
-    DLOG(F("successful over pipe:"));                                   \
-  } else {                                                              \
-    DLOG(F("failed over pipe:"));                                       \
- }                                                                      \
-  DLOG(pipe, HEX);                                                      \
-  return status;                                                        \
-}                                                                       \
-
-#define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
-  waitForCmdComplete();                                                 \
-  DLOG(F(Z));                                                           \
-  bool status = Y;                                                      \
-  if (status) {                                                         \
-    DLOG(F("successful"));                                              \
-  } else {                                                              \
-    DLOG(F("failed"));                                                  \
-    cmdComplete = true;                                                 \
-  }                                                                     \
-  return status;                                                        \
-}                                                                       \
-
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
 	init(_reqnPin, _rdynPin, 0, 0);
@@ -90,6 +60,8 @@ LOCAL_COMMAND(getBatteryLevel(), lib_aci_get_battery_level(), "getBatteryLevel")
 LOCAL_COMMAND(getTemperature(), lib_aci_get_temperature(), "getTemperartue")
 LOCAL_COMMAND(getDeviceVersion(), lib_aci_device_version(), "getDeviceVersion")
 LOCAL_COMMAND(getAddress(), lib_aci_get_address(), "getAddress")
+LOCAL_COMMAND(connect(), lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS), "connect")
+LOCAL_COMMAND(bond(), lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS), "bond")
 
 // protected
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
@@ -130,7 +102,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
   if (maxBonds > 0) {
     bonds = new BlueCapBond[maxBonds];
     for (int i = 0; i < maxBonds; i++) {
-      bonds[i].init(_eepromOffset, _maxBonds, i);
+      bonds[i].init(this, _eepromOffset, _maxBonds, i);
     }
   } else {
     bonds = NULL;
@@ -161,8 +133,8 @@ void BlueCapPeripheral::listen() {
                 didStartAdvertising();
               }
             } else {
-              DLOG(F("No Bond present in EEPROM."));
-  						lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
+              DLOG(F("Bonding not configured."));
+  						connect();
   						didStartAdvertising();
   						DLOG(F("Advertising started"));
             }
@@ -182,6 +154,8 @@ void BlueCapPeripheral::listen() {
 						aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
 				}
 				cmdComplete = true;
+        DLOG(F("cmdComplete:"));
+        DLOG(cmdComplete);
 				break;
 
 			case ACI_EVT_CONNECTED:
@@ -238,7 +212,7 @@ void BlueCapPeripheral::listen() {
             didStartAdvertising();
           }
         } else {
-  				lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
+  				connect();
           didStartAdvertising();
   				DLOG(F("Advertising started"));
         }
@@ -337,8 +311,11 @@ void BlueCapPeripheral::waitForAck() {
 }
 
 void BlueCapPeripheral::waitForCmdComplete () {
+  DLOG(F("waitForCmdComplete, cmdComplete:"));
+  DLOG(cmdComplete);
 	while(!cmdComplete){listen();};
-	cmdComplete = false;
+  DLOG(F("waitForCmdComplete, completed:"));
+  DLOG(cmdComplete);
 }
 
 // BlueCapBond

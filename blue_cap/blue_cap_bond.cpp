@@ -12,11 +12,12 @@
 BlueCapPeripheral::BlueCapBond::BlueCapBond() {
 }
 
-void BlueCapPeripheral::BlueCapBond::init(uint16_t _eepromOffset, uint16_t _maxBonds, uint8_t _index) {
+void BlueCapPeripheral::BlueCapBond::init(BlueCapPeripheral* _peripheral, uint16_t _eepromOffset, uint16_t _maxBonds, uint8_t _index) {
   eepromOffset = _eepromOffset;
   index = _index;
   maxBonds = _maxBonds;
   newBond = false;
+  peripheral = _peripheral;
   if (status() == 0x00) {
     bonded = false;
   } else {
@@ -226,10 +227,10 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
 
 void BlueCapPeripheral::BlueCapBond::connectOrBond() {
   if (bonded) {
-    lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
+    peripheral->connect();
     DLOG(F("Advertising started. Waiting for connection"));
   } else {
-    lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS);
+    peripheral->bond();
     DLOG(F("Advertising started : Waiting for connection and bonding"));
   }
 }

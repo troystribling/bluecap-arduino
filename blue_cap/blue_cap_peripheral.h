@@ -7,6 +7,38 @@
 #define CONNECT_TIMEOUT_SECONDS           180
 #define ADVERTISING_INTERVAL_MILISECONDS  0x0050
 
+#define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
+  bool status = false;                                                  \
+  DLOG(F(Z));                                                           \
+  waitForCmdComplete();                                                 \
+  if (isPipeAvailable(pipe)) {                                          \
+    waitForCredit();                                                    \
+    status = Y;                                                         \
+  }                                                                     \
+  if (status) {                                                         \
+    waitForAck();                                                       \
+    DLOG(F("successful over pipe:"));                                   \
+  } else {                                                              \
+    DLOG(F("failed over pipe:"));                                       \
+ }                                                                      \
+  DLOG(pipe, HEX);                                                      \
+  return status;                                                        \
+}                                                                       \
+
+#define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
+  DLOG(F(Z));                                                           \
+  waitForCmdComplete();                                                 \
+  cmdComplete = false;                                                  \
+  bool status = Y;                                                      \
+  if (status) {                                                         \
+    DLOG(F("successful"));                                              \
+  } else {                                                              \
+    DLOG(F("failed"));                                                  \
+    cmdComplete = true;                                                 \
+  }                                                                     \
+  return status;                                                        \
+}                                                                       \
+
 class BlueCapPeripheral {
 
 public:
@@ -33,6 +65,8 @@ public:
   bool getTemperature();
   bool getDeviceVersion();
   bool getAddress();
+  bool connect();
+  bool bond();
 
 
 protected:
@@ -90,7 +124,7 @@ private:
     public:
 
       BlueCapBond();
-      void init(uint16_t _eepromOffset, uint16_t _maxBonds, uint8_t _index);
+      void init(BlueCapPeripheral* _peripheral, uint16_t _eepromOffset, uint16_t _maxBonds, uint8_t _index);
       void clearBondData();
       void setup(aci_state_t* aciState);
       bool restoreIfBonded(aci_state_t* aciState);
@@ -105,6 +139,7 @@ private:
       bool                  bonded;
       uint8_t               index;
       bool                  newBond;
+      BlueCapPeripheral*    peripheral;
 
     private:
 
