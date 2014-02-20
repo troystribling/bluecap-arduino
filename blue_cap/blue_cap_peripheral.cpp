@@ -146,16 +146,14 @@ void BlueCapPeripheral::listen() {
 			case ACI_EVT_CMD_RSP:
 				DLOG(F("ACI_EVT_CMD_RSP"));
 				DLOG(aciEvt->params.cmd_rsp.cmd_opcode, HEX);
+        cmdComplete = true;
 				if (ACI_STATUS_SUCCESS != aciEvt->params.cmd_rsp.cmd_status) {
 					DLOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
+          DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
 					while(1){delay(1000);};
 				} else {
-					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode,
-						aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
+					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode, aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
 				}
-				cmdComplete = true;
-        DLOG(F("cmdComplete:"));
-        DLOG(cmdComplete);
 				break;
 
 			case ACI_EVT_CONNECTED:
@@ -311,11 +309,7 @@ void BlueCapPeripheral::waitForAck() {
 }
 
 void BlueCapPeripheral::waitForCmdComplete () {
-  DLOG(F("waitForCmdComplete, cmdComplete:"));
-  DLOG(cmdComplete);
 	while(!cmdComplete){listen();};
-  DLOG(F("waitForCmdComplete, completed:"));
-  DLOG(cmdComplete);
 }
 
 // BlueCapBond

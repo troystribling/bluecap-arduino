@@ -10,7 +10,6 @@
 #define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
   bool status = false;                                                  \
   DLOG(F(Z));                                                           \
-  waitForCmdComplete();                                                 \
   if (isPipeAvailable(pipe)) {                                          \
     waitForCredit();                                                    \
     status = Y;                                                         \
