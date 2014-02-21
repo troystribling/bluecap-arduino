@@ -59,7 +59,7 @@ LOCAL_COMMAND(setTxPower(aci_device_output_power_t txPower), lib_aci_set_tx_powe
 LOCAL_COMMAND(getBatteryLevel(), lib_aci_get_battery_level(), "getBatteryLevel")
 LOCAL_COMMAND(getTemperature(), lib_aci_get_temperature(), "getTemperartue")
 LOCAL_COMMAND(getDeviceVersion(), lib_aci_device_version(), "getDeviceVersion")
-LOCAL_COMMAND(getAddress(), lib_aci_get_address(), "getAddress")
+LOCAL_COMMAND(getBLEAddress(), lib_aci_get_address(), "getBLEAddress")
 LOCAL_COMMAND(connect(), lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS), "connect")
 LOCAL_COMMAND(bond(), lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS), "bond")
 

@@ -63,7 +63,7 @@ public:
   bool getBatteryLevel();
   bool getTemperature();
   bool getDeviceVersion();
-  bool getAddress();
+  bool getBLEAddress();
   bool connect();
   bool bond();
 
