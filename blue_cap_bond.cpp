@@ -1,8 +1,8 @@
 #include <SPI.h>
 #include <EEPROM.h>
-#include "nordic/boards.h"
-#include "nordic/lib_aci.h"
-#include "nordic/aci_setup.h"
+#include "boards.h"
+#include "lib_aci.h"
+#include "aci_setup.h"
 #include "dlog.h"
 
 #include "blue_cap_peripheral.h"

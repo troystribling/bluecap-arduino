@@ -1,7 +1,7 @@
 #ifndef _BLUE_CAP_PERIPHERAL_H
 #define _BLUE_CAP_PERIPHERAL_H
 
-#include "nordic/lib_aci.h"
+#include "lib_aci.h"
 
 #define BOND_HEADER_BYTES                 2
 #define CONNECT_TIMEOUT_SECONDS           180
