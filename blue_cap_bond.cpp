@@ -7,8 +7,6 @@
 
 #include "blue_cap_peripheral.h"
 
-#define BOND_DOES_NOT_EXIST_AT_INDEX    0xF0
-
 BlueCapPeripheral::BlueCapBond::BlueCapBond() {
 }
 
@@ -198,9 +196,6 @@ uint16_t  BlueCapPeripheral::BlueCapBond::writeBondData(aci_evt_t* evt, uint16_t
   EEPROM.write(addr, ACI_CMD_WRITE_DYNAMIC_DATA);
   addr++;
   for (uint8_t i=0; i< (evt->len-3); i++) {
-    DLOG(F("message address and value:"));
-    DLOG(addr, HEX);
-    DLOG(evt->params.cmd_rsp.params.padding[i], HEX);
     EEPROM.write(addr, evt->params.cmd_rsp.params.padding[i]);
     addr++;
   }
@@ -216,9 +211,6 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
   DLOG(len, HEX);
   for (uint8_t i = 1; i <= len; i++) {
       aciCmd->buffer[i] = EEPROM.read(addr);
-      DLOG(F("message address and value:"));
-      DLOG(addr, HEX);
-      DLOG(aciCmd->buffer[i], HEX);
       addr++;
   }
   DLOG(F("Finished reading message"));
