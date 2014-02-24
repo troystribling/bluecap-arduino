@@ -2,7 +2,7 @@
 #include "boards.h"
 #include "lib_aci.h"
 #include "aci_setup.h"
-#include "dlog.h"
+#include "utils.h"
 
 #include "blue_cap_peripheral.h"
 
@@ -252,6 +252,8 @@ void BlueCapPeripheral::setup() {
   DLOG(F("BlueCapPeripheral::begin"));
   DLOG(F("Number of bonded devices:"));
   DLOG(numberOfBondedDevices(), DEC);
+
+  Serial.begin(9600);
 
 	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
 	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
