@@ -8,15 +8,15 @@
 
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
-	init(_reqnPin, _rdynPin, 0, 0);
+	init(_reqnPin, _rdynPin, 0, 0, false);
 }
 
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset) {
-  init(_reqnPin, _rdynPin, _eepromOffset, 0);
+  init(_reqnPin, _rdynPin, _eepromOffset, 0, false);
 }
 
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds) {
-  init(_reqnPin, _rdynPin, _eepromOffset, _maxBonds);
+  init(_reqnPin, _rdynPin, _eepromOffset, _maxBonds, false);
 }
 
 BlueCapPeripheral::~BlueCapPeripheral() {
@@ -87,7 +87,7 @@ bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
 }
 
 // private methods
-void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds) {
+void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds, bool _broacasting) {
 	setUpMessages = NULL;
 	numberOfSetupMessages = 0;
 	servicesPipeTypeMapping = NULL;
@@ -95,6 +95,7 @@ void BlueCapPeripheral::init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepro
 	isConnected = false;
 	ack = false;
 	timingChangeDone = false;
+  broadcasting = _broacasting;
 	cmdComplete = true;
   currentBondIndex = 0;
   reqnPin = _reqnPin;

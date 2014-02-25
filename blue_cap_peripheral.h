@@ -88,6 +88,10 @@ protected:
   bool isPipeAvailable(uint8_t pipe);
   virtual bool doTimingChange() = 0;
 
+protected:
+
+  bool                            broadcasting;
+
 private:
 
   services_pipe_type_mapping_t*   servicesPipeTypeMapping;
@@ -108,7 +112,7 @@ private:
 
 private:
 
-  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds);
+  void init(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds, bool _broadcasting);
   void listen();
   void setup();
   void incrementCredit();
@@ -163,6 +167,16 @@ private:
 
   void nextBondIndex();
 
+};
+
+class BlueCapBondPeripheral : public BlueCapPeripheral {
+public:
+  BlueCapBondPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds) : BlueCapPeripheral(_reqnPin, _rdynPin, _eepromOffset, _maxBonds) {};
+};
+
+class BlueCapBroadcastPeripheral : public BlueCapPeripheral {
+public:
+  BlueCapBroadcastPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) : BlueCapPeripheral(_reqnPin, _rdynPin){broadcasting = true;};
 };
 
 #endif
