@@ -34,9 +34,9 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
 bool BlueCapPeripheral::BlueCapBond::restoreIfBonded(aci_state_t* aciState) {
   bool result = true;
   if (bonded) {
-    DLOG(F("Previous Bond present. Restoring"));
+    DBUG(F("Previous Bond present. Restoring"));
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
-      DLOG(F("Bond restored successfully: Waiting for connection"));
+      DBUG(F("Bond restored successfully: Waiting for connection"));
       // prevents HW error
       delay(1000);
     }
@@ -50,13 +50,13 @@ bool BlueCapPeripheral::BlueCapBond::restoreIfBonded(aci_state_t* aciState) {
 
 void BlueCapPeripheral::BlueCapBond::writeIfBonded(aci_state_t* aciState, aci_evt_t* aciEvt) {
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
-    DLOG(F("ACI_BOND_STATUS_SUCCESS"));
+    DBUG(F("ACI_BOND_STATUS_SUCCESS"));
     aciState->bonded = ACI_BOND_STATUS_FAILED;
     if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
       if (!bonded) {
         if (readAndWriteBondData(aciState)) {
           bonded = true;
-          DLOG(F("Bond data read and store successful"));
+          DBUG(F("Bond data read and store successful"));
           // prevents HW error
           delay(1000);
         } else {
@@ -94,7 +94,7 @@ aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(aci_state_t* 
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
             bonded = true;
             aciState->bonded = ACI_BOND_STATUS_SUCCESS;
-            DLOG(F("Restore of bond data completed successfully"));
+            DBUG(F("Restore of bond data completed successfully"));
             return ACI_STATUS_TRANSACTION_COMPLETE;
           } else if (ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status) {
             numDynMsgs--;
@@ -177,12 +177,12 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
 void BlueCapPeripheral::BlueCapBond::connectOrBond() {
   if (bonded) {
     peripheral->connect();
-    DLOG(F("Advertising started. Waiting for connection with bond:"));
+    DBUG(F("Advertising started. Waiting for connection with bond:"));
   } else {
     peripheral->bond();
-    DLOG(F("Advertising started : Waiting for connection and bonding with bond:"));
+    DBUG(F("Advertising started : Waiting for connection and bonding with bond:"));
   }
-  DLOG(index, DEC);
+  DBUG(index, DEC);
 }
 
 void BlueCapPeripheral::BlueCapBond::writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs) {

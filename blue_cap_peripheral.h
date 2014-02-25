@@ -9,30 +9,33 @@
 
 #define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
   bool status = false;                                                  \
-  DLOG(F(Z));                                                           \
   if (isPipeAvailable(pipe)) {                                          \
     waitForCredit();                                                    \
     status = Y;                                                         \
   }                                                                     \
   if (status) {                                                         \
     waitForAck();                                                       \
-    DLOG(F("successful over pipe:"));                                   \
+    DBUG(F(Z));                                                         \
+    DBUG(F("successful over pipe:"));                                   \
+    DBUG(pipe, HEX);                                                    \
   } else {                                                              \
-    DLOG(F("failed over pipe:"));                                       \
- }                                                                      \
-  DLOG(pipe, HEX);                                                      \
+    ERROR(F(Z));                                                        \
+    ERROR(F("failed over pipe:"));                                      \
+    ERROR(pipe, HEX);                                                   \
+  }                                                                     \
   return status;                                                        \
 }                                                                       \
 
 #define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
-  DLOG(F(Z));                                                           \
   waitForCmdComplete();                                                 \
   cmdComplete = false;                                                  \
   bool status = Y;                                                      \
   if (status) {                                                         \
-    DLOG(F("successful"));                                              \
+    DBUG(F(Z));                                                         \
+    DBUG(F("successful"));                                              \
   } else {                                                              \
-    DLOG(F("failed"));                                                  \
+    ERROR(F(Z));                                                        \
+    ERROR(F("failed"));                                                 \
     cmdComplete = true;                                                 \
   }                                                                     \
   return status;                                                        \

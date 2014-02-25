@@ -38,13 +38,13 @@ bool BlueCapPeripheral::addBond() {
     if (bondedCount < maxBonds) {
       result = true;
       bonds[bondedCount].newBond = true;
-      DLOG(F("addBond, index:"));
-      DLOG(bondedCount);
+      DBUG(F("addBond, index:"));
+      DBUG(bondedCount);
     } else {
-      DLOG(F("Error(addBond): No more bonds"));
+      ERROR(F("No more bonds"));
     }
   } else {
-    DLOG(F("Error(addBond): New bond exists. only one new bond at a time"));
+    ERROR(F("New bond exists. only one new bond at a time"));
   }
   return result;
 }
@@ -77,11 +77,12 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
 	bool status = lib_aci_is_pipe_available(&aciState, pipe);
 	if (status) {
-		DLOG(F("Pipe available:"));
+		DBUG(F("Pipe available:"));
+    DBUG(pipe, HEX);
 	} else {
-		DLOG(F("Pipe unavailable:"));
+		ERROR(F("Pipe unavailable:"));
+    ERROR(pipe, HEX);
 	}
-	DLOG(pipe, HEX);
 	return status;
 }
 
@@ -116,27 +117,26 @@ void BlueCapPeripheral::listen() {
 		switch(aciEvt->evt_opcode) {
 			case ACI_EVT_DEVICE_STARTED:
 				aciState.data_credit_total = aciEvt->params.device_started.credit_available;
-				DLOG(F("Total credits"));
-				DLOG(aciState.data_credit_total, DEC);
+				DBUG(F("Total credits"));
+				DBUG(aciState.data_credit_total, DEC);
 				switch(aciEvt->params.device_started.device_mode) {
 					case ACI_DEVICE_SETUP:
-						DLOG(F("ACI_DEVICE_SETUP"));
+						DBUG(F("ACI_DEVICE_SETUP"));
 						if (ACI_STATUS_TRANSACTION_COMPLETE != do_aci_setup(&aciState)) {
-							DLOG(F("Error ACI_DEVICE_SETUP"));
+							ERROR(F("ACI_DEVICE_SETUP failed"));
 						}
 						break;
 					case ACI_DEVICE_STANDBY: {
-						DLOG(F("ACI_DEVICE_STANDBY"));
+						DBUG(F("ACI_DEVICE_STANDBY"));
             if (maxBonds > 0) {
               if (bonds[currentBondIndex].restoreIfBonded(&aciState)) {
                 bonds[currentBondIndex].connectOrBond();
                 didStartAdvertising();
               }
             } else {
-              DLOG(F("Bonding not configured."));
   						connect();
   						didStartAdvertising();
-  						DLOG(F("Advertising started"));
+  						DBUG(F("Bonding not configured. Advertising started"));
             }
 						break;
 					}
@@ -144,12 +144,12 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CMD_RSP:
-				DLOG(F("ACI_EVT_CMD_RSP"));
-				DLOG(aciEvt->params.cmd_rsp.cmd_opcode, HEX);
+				DBUG(F("ACI_EVT_CMD_RSP"));
+				DBUG(aciEvt->params.cmd_rsp.cmd_opcode, HEX);
         cmdComplete = true;
 				if (ACI_STATUS_SUCCESS != aciEvt->params.cmd_rsp.cmd_status) {
-					DLOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
-          DLOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
+					ERROR(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
+          ERROR(aciEvt->params.cmd_rsp.cmd_status, HEX);
 					while(1){delay(1000);};
 				} else {
 					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode, aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
@@ -157,7 +157,7 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CONNECTED:
-				DLOG(F("ACI_EVT_CONNECTED"));
+				DBUG(F("ACI_EVT_CONNECTED"));
 				isConnected = true;
 				timingChangeDone = false;
 				aciState.data_credit_available = aciState.data_credit_total;
@@ -166,22 +166,22 @@ void BlueCapPeripheral::listen() {
 				break;
 
       case ACI_EVT_BOND_STATUS:
-				DLOG(F("ACI_EVT_BOND_STATUS"));
         aciState.bonded = aciEvt->params.bond_status.status_code;
-				DLOG(aciState.bonded, HEX);
+				DBUG(F("ACI_EVT_BOND_STATUS"));
+				DBUG(aciState.bonded, HEX);
 				if (aciState.bonded == ACI_BOND_STATUS_SUCCESS) {
-					DLOG(F("Bond successful"));
+					DBUG(F("Bond successful"));
           if (maxBonds > 0) {
             bonds[currentBondIndex].newBond = false;
           }
 					didBond();
 				} else {
-					DLOG(F("Bond failed"));
+					ERROR(F("Bond failed"));
 				}
         break;
 
 			case ACI_EVT_PIPE_STATUS:
-				DLOG(F("ACI_EVT_PIPE_STATUS"));
+				DBUG(F("ACI_EVT_PIPE_STATUS"));
 				didReceiveStatusChange();
 				if (doTimingChange() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
@@ -190,17 +190,17 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_TIMING:
-				DLOG(F("ACI_EVT_TIMING"));
+				DBUG(F("ACI_EVT_TIMING"));
 				break;
 
 			case ACI_EVT_DISCONNECTED:
 				isConnected = false;
 				ack = true;
-				DLOG(F("ACI_EVT_DISCONNECTED"));
+				DBUG(F("ACI_EVT_DISCONNECTED"));
 				didDisconnect();
         if (maxBonds > 0) {
           if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
-              DLOG(F("ACI_STATUS_ERROR_ADVT_TIMEOUT"));
+              DBUG(F("ACI_STATUS_ERROR_ADVT_TIMEOUT"));
           } else {
             bonds[currentBondIndex].writeIfBonded(&aciState, aciEvt);
           }
@@ -212,7 +212,7 @@ void BlueCapPeripheral::listen() {
         } else {
   				connect();
           didStartAdvertising();
-  				DLOG(F("Advertising started"));
+  				DBUG(F("Advertising started"));
         }
 				break;
 
@@ -220,27 +220,22 @@ void BlueCapPeripheral::listen() {
 				int pipe = aciEvt->params.data_received.rx_data.pipe_number;
 				int size = aciEvt->len - 2;
 				ack = true;
-				DLOG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
-				DLOG(pipe, HEX);
-				DLOG(F("size:"));
-				DLOG(size, DEC);
+				DBUG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
+				DBUG(pipe, HEX);
 				didReceiveData(pipe, aciEvt->params.data_received.rx_data.aci_data, size);
 				break;
 			}
 
 			case ACI_EVT_DATA_CREDIT:
 				aciState.data_credit_available = aciState.data_credit_available + aciEvt->params.data_credit.credit;
-				DLOG(F("ACI_EVT_DATA_CREDIT"));
-				DLOG(aciState.data_credit_available, DEC);
 				ack = true;
+        DBUG(F("ACI_EVT_DATA_CREDIT"));
+        DBUG(aciState.data_credit_available, DEC);
 				break;
 
 			case ACI_EVT_PIPE_ERROR:
 				ack = true;
-				DLOG(F("ACI_EVT_PIPE_ERROR: Pipe #:"));
-				DLOG(aciEvt->params.pipe_error.pipe_number, DEC);
-				DLOG(F("Pipe Error Code: 0x"));
-				DLOG(aciEvt->params.pipe_error.error_code, HEX);
+				ERROR(F("ACI_EVT_PIPE_ERROR"));
 				didReceiveError(aciEvt->params.pipe_error.pipe_number, aciEvt->params.pipe_error.error_code);
 				incrementCredit();
 				break;
@@ -249,9 +244,9 @@ void BlueCapPeripheral::listen() {
 }
 
 void BlueCapPeripheral::setup() {
-  DLOG(F("BlueCapPeripheral::begin"));
-  DLOG(F("Number of bonded devices:"));
-  DLOG(numberOfBondedDevices(), DEC);
+  DBUG(F("BlueCapPeripheral::begin"));
+  DBUG(F("Number of bonded devices:"));
+  DBUG(numberOfBondedDevices(), DEC);
 
 	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
 	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
@@ -288,14 +283,14 @@ void BlueCapPeripheral::setup() {
 
 void BlueCapPeripheral::incrementCredit() {
 	aciState.data_credit_available++;
-	DLOG(F("Data Credit available:"));
-	DLOG(aciState.data_credit_available,DEC);
+	DBUG(F("Data Credit available:"));
+	DBUG(aciState.data_credit_available,DEC);
 }
 
 void BlueCapPeripheral::decrementCredit() {
 	aciState.data_credit_available--;
-	DLOG(F("Data Credit available:"));
-	DLOG(aciState.data_credit_available, DEC);
+	DBUG(F("Data Credit available:"));
+	DBUG(aciState.data_credit_available, DEC);
 }
 
 void BlueCapPeripheral::waitForCredit() {
@@ -318,8 +313,8 @@ void BlueCapPeripheral::nextBondIndex() {
   if (currentBondIndex > numberOfBondedDevices() - 1) {
     currentBondIndex = 0;
   }
-  DLOG(F("nextBondIndex:"));
-  DLOG(currentBondIndex, DEC);
+  DBUG(F("nextBondIndex:"));
+  DBUG(currentBondIndex, DEC);
 }
 
 uint8_t BlueCapPeripheral::numberOfBondedDevices() {
