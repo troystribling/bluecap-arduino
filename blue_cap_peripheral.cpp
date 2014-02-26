@@ -6,6 +6,40 @@
 
 #include "blue_cap_peripheral.h"
 
+#define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
+  bool status = false;                                                  \
+  if (isPipeAvailable(pipe)) {                                          \
+    waitForCredit();                                                    \
+    status = Y;                                                         \
+  }                                                                     \
+  if (status) {                                                         \
+    waitForAck();                                                       \
+    DBUG(F(Z));                                                         \
+    DBUG(F("successful over pipe:"));                                   \
+    DBUG(pipe, HEX);                                                    \
+  } else {                                                              \
+    ERROR(F(Z));                                                        \
+    ERROR(F("failed over pipe:"));                                      \
+    ERROR(pipe, HEX);                                                   \
+  }                                                                     \
+  return status;                                                        \
+}                                                                       \
+
+#define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
+  waitForCmdComplete();                                                 \
+  cmdComplete = false;                                                  \
+  bool status = Y;                                                      \
+  if (status) {                                                         \
+    DBUG(F(Z));                                                         \
+    DBUG(F("successful"));                                              \
+  } else {                                                              \
+    ERROR(F(Z));                                                        \
+    ERROR(F("failed"));                                                 \
+    cmdComplete = true;                                                 \
+  }                                                                     \
+  return status;                                                        \
+}                                                                       \
+
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
 	init(_reqnPin, _rdynPin, 0, 0, false);

@@ -7,40 +7,6 @@
 #define CONNECT_TIMEOUT_SECONDS           180
 #define ADVERTISING_INTERVAL_MILISECONDS  0x0050
 
-#define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
-  bool status = false;                                                  \
-  if (isPipeAvailable(pipe)) {                                          \
-    waitForCredit();                                                    \
-    status = Y;                                                         \
-  }                                                                     \
-  if (status) {                                                         \
-    waitForAck();                                                       \
-    DBUG(F(Z));                                                         \
-    DBUG(F("successful over pipe:"));                                   \
-    DBUG(pipe, HEX);                                                    \
-  } else {                                                              \
-    ERROR(F(Z));                                                        \
-    ERROR(F("failed over pipe:"));                                      \
-    ERROR(pipe, HEX);                                                   \
-  }                                                                     \
-  return status;                                                        \
-}                                                                       \
-
-#define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
-  waitForCmdComplete();                                                 \
-  cmdComplete = false;                                                  \
-  bool status = Y;                                                      \
-  if (status) {                                                         \
-    DBUG(F(Z));                                                         \
-    DBUG(F("successful"));                                              \
-  } else {                                                              \
-    ERROR(F(Z));                                                        \
-    ERROR(F("failed"));                                                 \
-    cmdComplete = true;                                                 \
-  }                                                                     \
-  return status;                                                        \
-}                                                                       \
-
 class BlueCapPeripheral {
 
 public:
