@@ -169,14 +169,14 @@ private:
 
 };
 
-class BlueCapBondPeripheral : public BlueCapPeripheral {
+class BlueCapBondedPeripheral : public BlueCapPeripheral {
 public:
-  BlueCapBondPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds) : BlueCapPeripheral(_reqnPin, _rdynPin, _eepromOffset, _maxBonds) {};
+  BlueCapBondedPeripheral(uint8_t _reqnPin, uint8_t _rdynPin, uint16_t _eepromOffset, uint8_t _maxBonds) : BlueCapPeripheral(_reqnPin, _rdynPin, _eepromOffset, _maxBonds) {};
 };
 
-class BlueCapBroadcastPeripheral : public BlueCapPeripheral {
+class BlueCapBroadcastingPeripheral : public BlueCapPeripheral {
 public:
-  BlueCapBroadcastPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) : BlueCapPeripheral(_reqnPin, _rdynPin){broadcasting = true;};
+  BlueCapBroadcastingPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) : BlueCapPeripheral(_reqnPin, _rdynPin){broadcasting = true;};
 };
 
 #endif
