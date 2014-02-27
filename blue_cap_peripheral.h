@@ -4,8 +4,6 @@
 #include "lib_aci.h"
 
 #define BOND_HEADER_BYTES                 2
-#define CONNECT_TIMEOUT_SECONDS           180
-#define ADVERTISING_INTERVAL_MILISECONDS  0x0050
 
 class BlueCapPeripheral {
 
@@ -35,6 +33,9 @@ public:
   bool getBLEAddress();
   bool connect();
   bool bond();
+  bool broadcast();
+  bool radioReset();
+  bool sleep();
 
 
 protected:
@@ -42,6 +43,7 @@ protected:
   virtual void didReceiveData(uint8_t characteristicId, uint8_t* data, uint8_t size){};
   virtual void didReceiveCommandResponse(uint8_t commandId, uint8_t* data, uint8_t size){};
   virtual void didDisconnect(){};
+  virtual void didTimeout(){};
   virtual void didConnect(){};
   virtual void didStartAdvertising(){};
   virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};

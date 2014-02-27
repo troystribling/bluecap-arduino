@@ -6,6 +6,15 @@
 
 #include "blue_cap_peripheral.h"
 
+#define CONNECT_TIMEOUT_SECONDS                       180
+#define CONNECT_ADVERTISING_INTERVAL_MILISECONDS      0x0050
+
+#define BOND_TIMEOUT_SECONDS                          180
+#define BOND_ADVERTISING_INTERVAL_MILISECONDS         0x0050
+
+#define BROADCAST_TIMEOUT_SECONDS                     10
+#define BROADCAST_ADVERTISING_INTERVAL_MILISECONDS    0x010
+
 #define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
   bool status = false;                                                  \
   if (isPipeAvailable(pipe)) {                                          \
@@ -94,8 +103,11 @@ LOCAL_COMMAND(getBatteryLevel(), lib_aci_get_battery_level(), "getBatteryLevel")
 LOCAL_COMMAND(getTemperature(), lib_aci_get_temperature(), "getTemperartue")
 LOCAL_COMMAND(getDeviceVersion(), lib_aci_device_version(), "getDeviceVersion")
 LOCAL_COMMAND(getBLEAddress(), lib_aci_get_address(), "getBLEAddress")
-LOCAL_COMMAND(connect(), lib_aci_connect(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS), "connect")
-LOCAL_COMMAND(bond(), lib_aci_bond(CONNECT_TIMEOUT_SECONDS, ADVERTISING_INTERVAL_MILISECONDS), "bond")
+LOCAL_COMMAND(connect(), lib_aci_connect(CONNECT_TIMEOUT_SECONDS, CONNECT_ADVERTISING_INTERVAL_MILISECONDS), "connect")
+LOCAL_COMMAND(bond(), lib_aci_bond(BOND_TIMEOUT_SECONDS, BOND_ADVERTISING_INTERVAL_MILISECONDS), "bond")
+LOCAL_COMMAND(broadcast(), lib_aci_broadcast(BROADCAST_TIMEOUT_SECONDS, BOND_ADVERTISING_INTERVAL_MILISECONDS), "broadcast")
+LOCAL_COMMAND(radioReset(), lib_aci_radio_reset(), "radioReset")
+LOCAL_COMMAND(sleep(), lib_aci_sleep(), "sleep")
 
 // protected
 void BlueCapPeripheral::setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count) {
@@ -168,6 +180,10 @@ void BlueCapPeripheral::listen() {
                 bonds[currentBondIndex].connectOrBond();
                 didStartAdvertising();
               }
+            } else if (broadcasting) {
+              broadcast();
+              didStartAdvertising();
+              DBUG(F("Advertising broadcast started"));
             } else {
   						connect();
   						didStartAdvertising();
@@ -232,11 +248,13 @@ void BlueCapPeripheral::listen() {
 				isConnected = false;
 				ack = true;
 				DBUG(F("ACI_EVT_DISCONNECTED"));
-				didDisconnect();
+        if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
+          didTimeout();
+        } else {
+          didDisconnect();
+        }
         if (maxBonds > 0) {
-          if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
-              DBUG(F("ACI_STATUS_ERROR_ADVT_TIMEOUT"));
-          } else {
+          if (ACI_STATUS_ERROR_ADVT_TIMEOUT != aciEvt->params.disconnected.aci_status) {
             bonds[currentBondIndex].writeIfBonded(&aciState, aciEvt);
           }
           nextBondIndex();
