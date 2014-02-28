@@ -13,7 +13,7 @@
 #define BOND_ADVERTISING_INTERVAL_MILISECONDS         0x0050
 
 #define BROADCAST_TIMEOUT_SECONDS                     10
-#define BROADCAST_ADVERTISING_INTERVAL_MILISECONDS    0x010
+#define BROADCAST_ADVERTISING_INTERVAL_MILISECONDS    0x0100
 
 #define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
   bool status = false;                                                  \
@@ -105,7 +105,7 @@ LOCAL_COMMAND(getDeviceVersion(), lib_aci_device_version(), "getDeviceVersion")
 LOCAL_COMMAND(getBLEAddress(), lib_aci_get_address(), "getBLEAddress")
 LOCAL_COMMAND(connect(), lib_aci_connect(CONNECT_TIMEOUT_SECONDS, CONNECT_ADVERTISING_INTERVAL_MILISECONDS), "connect")
 LOCAL_COMMAND(bond(), lib_aci_bond(BOND_TIMEOUT_SECONDS, BOND_ADVERTISING_INTERVAL_MILISECONDS), "bond")
-LOCAL_COMMAND(broadcast(), lib_aci_broadcast(BROADCAST_TIMEOUT_SECONDS, BOND_ADVERTISING_INTERVAL_MILISECONDS), "broadcast")
+LOCAL_COMMAND(broadcast(), lib_aci_broadcast(BROADCAST_TIMEOUT_SECONDS, BROADCAST_ADVERTISING_INTERVAL_MILISECONDS), "broadcast")
 LOCAL_COMMAND(radioReset(), lib_aci_radio_reset(), "radioReset")
 LOCAL_COMMAND(sleep(), lib_aci_sleep(), "sleep")
 
@@ -233,7 +233,7 @@ void BlueCapPeripheral::listen() {
 
 			case ACI_EVT_PIPE_STATUS:
 				DBUG(F("ACI_EVT_PIPE_STATUS"));
-				didReceiveStatusChange();
+				didReceivePipeStatusChange();
 				if (doTimingChange() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
 					timingChangeDone = true;
@@ -262,7 +262,7 @@ void BlueCapPeripheral::listen() {
             bonds[currentBondIndex].connectOrBond();
             didStartAdvertising();
           }
-        } else {
+        } else if (!broadcasting) {
   				connect();
           didStartAdvertising();
   				DBUG(F("Advertising started"));
@@ -297,9 +297,11 @@ void BlueCapPeripheral::listen() {
 }
 
 void BlueCapPeripheral::setup() {
-  DBUG(F("BlueCapPeripheral::begin"));
-  DBUG(F("Number of bonded devices:"));
-  DBUG(numberOfBondedDevices(), DEC);
+  if (maxBonds > 0) {
+    DBUG(F("BlueCapPeripheral::begin"));
+    DBUG(F("Number of bonded devices:"));
+    DBUG(numberOfBondedDevices(), DEC);
+  }
 
 	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
 	aciState.aci_setup_info.number_of_pipes    					= numberOfPipes;
