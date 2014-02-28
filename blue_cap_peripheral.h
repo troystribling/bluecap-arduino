@@ -49,12 +49,12 @@ protected:
   virtual void didReceiveError(uint8_t pipe, uint8_t errorCode){};
   virtual void didReceivePipeStatusChange(){};
   virtual void didBond(){};
+  virtual bool doTimingChange(){return true;};
 
   void setServicePipeTypeMapping(services_pipe_type_mapping_t* mapping, int count);
   void setSetUpMessages(hal_aci_data_t* messages, int count);
 
   bool isPipeAvailable(uint8_t pipe);
-  virtual bool doTimingChange() = 0;
 
 protected:
 
