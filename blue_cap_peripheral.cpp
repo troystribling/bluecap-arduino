@@ -15,39 +15,41 @@
 #define BROADCAST_TIMEOUT_SECONDS                     10
 #define BROADCAST_ADVERTISING_INTERVAL_MILISECONDS    0x0100
 
-#define REMOTE_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {             \
-  bool status = false;                                                  \
-  if (isPipeAvailable(pipe)) {                                          \
-    waitForCredit();                                                    \
-    status = Y;                                                         \
-  }                                                                     \
-  if (status) {                                                         \
-    waitForAck();                                                       \
-    DBUG_LOG(F(Z));                                                     \
-    DBUG_LOG(F("successful over pipe:"));                               \
-    DBUG_LOG(pipe, HEX);                                                \
-  } else {                                                              \
-    ERROR_LOG(F(Z));                                                    \
-    ERROR_LOG(F("failed over pipe:"));                                  \
-    ERROR_LOG(pipe, HEX);                                               \
-  }                                                                     \
-  return status;                                                        \
-}                                                                       \
+#define REMOTE_COMMAND(X, Y, Z)                                 \
+  bool BlueCapPeripheral::X {                                   \
+    bool status = false;                                        \
+    if (isPipeAvailable(pipe)) {                                \
+      waitForCredit();                                          \
+      status = Y;                                               \
+    }                                                           \
+    if (status) {                                               \
+      waitForAck();                                             \
+      DBUG_LOG(F(Z));                                           \
+      DBUG_LOG(F("successful over pipe:"));                     \
+      DBUG_LOG(pipe, HEX);                                      \
+    } else {                                                    \
+      ERROR_LOG(F(Z));                                          \
+      ERROR_LOG(F("failed over pipe:"));                        \
+      ERROR_LOG(pipe, HEX);                                     \
+    }                                                           \
+    return status;                                              \
+  }
 
-#define LOCAL_COMMAND(X, Y, Z) bool BlueCapPeripheral::X {              \
-  waitForCmdComplete();                                                 \
-  cmdComplete = false;                                                  \
-  bool status = Y;                                                      \
-  if (status) {                                                         \
-    DBUG_LOG(F(Z));                                                     \
-    DBUG_LOG(F("successful"));                                          \
-  } else {                                                              \
-    ERROR_LOG(F(Z));                                                    \
-    ERROR_LOG(F("failed"));                                             \
-    cmdComplete = true;                                                 \
-  }                                                                     \
-  return status;                                                        \
-}                                                                       \
+#define LOCAL_COMMAND(X, Y, Z)                                  \
+  bool BlueCapPeripheral::X {                                   \
+    waitForCmdComplete();                                       \
+    cmdComplete = false;                                        \
+    bool status = Y;                                            \
+    if (status) {                                               \
+      DBUG_LOG(F(Z));                                           \
+      DBUG_LOG(F("successful"));                                \
+    } else {                                                    \
+      ERROR_LOG(F(Z));                                          \
+      ERROR_LOG(F("failed"));                                   \
+      cmdComplete = true;                                       \
+    }                                                           \
+    return status;                                              \
+  }
 
 // public methods
 BlueCapPeripheral::BlueCapPeripheral(uint8_t _reqnPin, uint8_t _rdynPin) {
