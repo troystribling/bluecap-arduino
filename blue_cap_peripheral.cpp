@@ -23,13 +23,13 @@
   }                                                                     \
   if (status) {                                                         \
     waitForAck();                                                       \
-    DBUG(F(Z));                                                         \
-    DBUG(F("successful over pipe:"));                                   \
-    DBUG(pipe, HEX);                                                    \
+    DBUG_LOG(F(Z));                                                     \
+    DBUG_LOG(F("successful over pipe:"));                               \
+    DBUG_LOG(pipe, HEX);                                                \
   } else {                                                              \
-    ERROR(F(Z));                                                        \
-    ERROR(F("failed over pipe:"));                                      \
-    ERROR(pipe, HEX);                                                   \
+    ERROR_LOG(F(Z));                                                    \
+    ERROR_LOG(F("failed over pipe:"));                                  \
+    ERROR_LOG(pipe, HEX);                                               \
   }                                                                     \
   return status;                                                        \
 }                                                                       \
@@ -39,11 +39,11 @@
   cmdComplete = false;                                                  \
   bool status = Y;                                                      \
   if (status) {                                                         \
-    DBUG(F(Z));                                                         \
-    DBUG(F("successful"));                                              \
+    DBUG_LOG(F(Z));                                                     \
+    DBUG_LOG(F("successful"));                                          \
   } else {                                                              \
-    ERROR(F(Z));                                                        \
-    ERROR(F("failed"));                                                 \
+    ERROR_LOG(F(Z));                                                    \
+    ERROR_LOG(F("failed"));                                             \
     cmdComplete = true;                                                 \
   }                                                                     \
   return status;                                                        \
@@ -81,13 +81,13 @@ bool BlueCapPeripheral::addBond() {
     if (bondedCount < maxBonds) {
       result = true;
       bonds[bondedCount].newBond = true;
-      DBUG(F("addBond, index:"));
-      DBUG(bondedCount);
+      DBUG_LOG(F("addBond, index:"));
+      DBUG_LOG(bondedCount);
     } else {
-      ERROR(F("No more bonds"));
+      ERROR_LOG(F("No more bonds"));
     }
   } else {
-    ERROR(F("New bond exists. only one new bond at a time"));
+    ERROR_LOG(F("New bond exists. only one new bond at a time"));
   }
   return result;
 }
@@ -123,11 +123,11 @@ void BlueCapPeripheral::setSetUpMessages(hal_aci_data_t* messages, int count) {
 bool BlueCapPeripheral::isPipeAvailable(uint8_t pipe) {
 	bool status = lib_aci_is_pipe_available(&aciState, pipe);
 	if (status) {
-		DBUG(F("Pipe available:"));
-    DBUG(pipe, HEX);
+		DBUG_LOG(F("Pipe available:"));
+    DBUG_LOG(pipe, HEX);
 	} else {
-		ERROR(F("Pipe unavailable:"));
-    ERROR(pipe, HEX);
+		ERROR_LOG(F("Pipe unavailable:"));
+    ERROR_LOG(pipe, HEX);
 	}
 	return status;
 }
@@ -164,17 +164,17 @@ void BlueCapPeripheral::listen() {
 		switch(aciEvt->evt_opcode) {
 			case ACI_EVT_DEVICE_STARTED:
 				aciState.data_credit_total = aciEvt->params.device_started.credit_available;
-				DBUG(F("Total credits"));
-				DBUG(aciState.data_credit_total, DEC);
+				DBUG_LOG(F("Total credits"));
+				DBUG_LOG(aciState.data_credit_total, DEC);
 				switch(aciEvt->params.device_started.device_mode) {
 					case ACI_DEVICE_SETUP:
-						DBUG(F("ACI_DEVICE_SETUP"));
+						DBUG_LOG(F("ACI_DEVICE_SETUP"));
 						if (ACI_STATUS_TRANSACTION_COMPLETE != do_aci_setup(&aciState)) {
-							ERROR(F("ACI_DEVICE_SETUP failed"));
+							ERROR_LOG(F("ACI_DEVICE_SETUP failed"));
 						}
 						break;
 					case ACI_DEVICE_STANDBY: {
-						DBUG(F("ACI_DEVICE_STANDBY"));
+						DBUG_LOG(F("ACI_DEVICE_STANDBY"));
             if (maxBonds > 0) {
               if (bonds[currentBondIndex].restoreIfBonded(&aciState)) {
                 bonds[currentBondIndex].connectOrBond();
@@ -183,11 +183,11 @@ void BlueCapPeripheral::listen() {
             } else if (broadcasting) {
               broadcast();
               didStartAdvertising();
-              DBUG(F("Advertising broadcast started"));
+              DBUG_LOG(F("Advertising broadcast started"));
             } else {
   						connect();
   						didStartAdvertising();
-  						DBUG(F("Bonding not configured. Advertising started"));
+  						DBUG_LOG(F("Bonding not configured. Advertising started"));
             }
 						break;
 					}
@@ -195,12 +195,12 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CMD_RSP:
-				DBUG(F("ACI_EVT_CMD_RSP"));
-				DBUG(aciEvt->params.cmd_rsp.cmd_opcode, HEX);
+				DBUG_LOG(F("ACI_EVT_CMD_RSP"));
+				DBUG_LOG(aciEvt->params.cmd_rsp.cmd_opcode, HEX);
         cmdComplete = true;
 				if (ACI_STATUS_SUCCESS != aciEvt->params.cmd_rsp.cmd_status) {
-					ERROR(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
-          ERROR(aciEvt->params.cmd_rsp.cmd_status, HEX);
+					ERROR_LOG(F("ACI_EVT_CMD_RSP: Error. Arduino is in an while(1); loop"));
+          ERROR_LOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
 					while(1){delay(1000);};
 				} else {
 					didReceiveCommandResponse(aciEvt->params.cmd_rsp.cmd_opcode, aciEvt->params.data_received.rx_data.aci_data, aciEvt->len - 3);
@@ -208,7 +208,7 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_CONNECTED:
-				DBUG(F("ACI_EVT_CONNECTED"));
+				DBUG_LOG(F("ACI_EVT_CONNECTED"));
 				isConnected = true;
 				timingChangeDone = false;
 				aciState.data_credit_available = aciState.data_credit_total;
@@ -218,21 +218,21 @@ void BlueCapPeripheral::listen() {
 
       case ACI_EVT_BOND_STATUS:
         aciState.bonded = aciEvt->params.bond_status.status_code;
-				DBUG(F("ACI_EVT_BOND_STATUS"));
-				DBUG(aciState.bonded, HEX);
+				DBUG_LOG(F("ACI_EVT_BOND_STATUS"));
+				DBUG_LOG(aciState.bonded, HEX);
 				if (aciState.bonded == ACI_BOND_STATUS_SUCCESS) {
-					DBUG(F("Bond successful"));
+					DBUG_LOG(F("Bond successful"));
           if (maxBonds > 0) {
             bonds[currentBondIndex].newBond = false;
           }
 					didBond();
 				} else {
-					ERROR(F("Bond failed"));
+					ERROR_LOG(F("Bond failed"));
 				}
         break;
 
 			case ACI_EVT_PIPE_STATUS:
-				DBUG(F("ACI_EVT_PIPE_STATUS"));
+				DBUG_LOG(F("ACI_EVT_PIPE_STATUS"));
 				didReceivePipeStatusChange();
 				if (doTimingChange() && (timingChangeDone == false)) {
 					lib_aci_change_timing_GAP_PPCP();
@@ -241,13 +241,13 @@ void BlueCapPeripheral::listen() {
 				break;
 
 			case ACI_EVT_TIMING:
-				DBUG(F("ACI_EVT_TIMING"));
+				DBUG_LOG(F("ACI_EVT_TIMING"));
 				break;
 
 			case ACI_EVT_DISCONNECTED:
 				isConnected = false;
 				ack = true;
-				DBUG(F("ACI_EVT_DISCONNECTED"));
+				DBUG_LOG(F("ACI_EVT_DISCONNECTED"));
         if (ACI_STATUS_ERROR_ADVT_TIMEOUT == aciEvt->params.disconnected.aci_status) {
           didTimeout();
         } else {
@@ -265,7 +265,7 @@ void BlueCapPeripheral::listen() {
         } else if (!broadcasting) {
   				connect();
           didStartAdvertising();
-  				DBUG(F("Advertising started"));
+  				DBUG_LOG(F("Advertising started"));
         }
 				break;
 
@@ -273,8 +273,8 @@ void BlueCapPeripheral::listen() {
 				int pipe = aciEvt->params.data_received.rx_data.pipe_number;
 				int size = aciEvt->len - 2;
 				ack = true;
-				DBUG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
-				DBUG(pipe, HEX);
+				DBUG_LOG(F("ACI_EVT_DATA_RECEIVED Pipe #:"));
+				DBUG_LOG(pipe, HEX);
 				didReceiveData(pipe, aciEvt->params.data_received.rx_data.aci_data, size);
 				break;
 			}
@@ -282,13 +282,13 @@ void BlueCapPeripheral::listen() {
 			case ACI_EVT_DATA_CREDIT:
 				aciState.data_credit_available = aciState.data_credit_available + aciEvt->params.data_credit.credit;
 				ack = true;
-        DBUG(F("ACI_EVT_DATA_CREDIT"));
-        DBUG(aciState.data_credit_available, DEC);
+        DBUG_LOG(F("ACI_EVT_DATA_CREDIT"));
+        DBUG_LOG(aciState.data_credit_available, DEC);
 				break;
 
 			case ACI_EVT_PIPE_ERROR:
 				ack = true;
-				ERROR(F("ACI_EVT_PIPE_ERROR"));
+				ERROR_LOG(F("ACI_EVT_PIPE_ERROR"));
 				didReceiveError(aciEvt->params.pipe_error.pipe_number, aciEvt->params.pipe_error.error_code);
 				incrementCredit();
 				break;
@@ -298,9 +298,9 @@ void BlueCapPeripheral::listen() {
 
 void BlueCapPeripheral::setup() {
   if (maxBonds > 0) {
-    DBUG(F("BlueCapPeripheral::begin"));
-    DBUG(F("Number of bonded devices:"));
-    DBUG(numberOfBondedDevices(), DEC);
+    DBUG_LOG(F("BlueCapPeripheral::begin"));
+    DBUG_LOG(F("Number of bonded devices:"));
+    DBUG_LOG(numberOfBondedDevices(), DEC);
   }
 
 	aciState.aci_setup_info.services_pipe_type_mapping 	= servicesPipeTypeMapping;
@@ -338,14 +338,14 @@ void BlueCapPeripheral::setup() {
 
 void BlueCapPeripheral::incrementCredit() {
 	aciState.data_credit_available++;
-	DBUG(F("Data Credit available:"));
-	DBUG(aciState.data_credit_available,DEC);
+	DBUG_LOG(F("Data Credit available:"));
+	DBUG_LOG(aciState.data_credit_available,DEC);
 }
 
 void BlueCapPeripheral::decrementCredit() {
 	aciState.data_credit_available--;
-	DBUG(F("Data Credit available:"));
-	DBUG(aciState.data_credit_available, DEC);
+	DBUG_LOG(F("Data Credit available:"));
+	DBUG_LOG(aciState.data_credit_available, DEC);
 }
 
 void BlueCapPeripheral::waitForCredit() {
@@ -368,8 +368,8 @@ void BlueCapPeripheral::nextBondIndex() {
   if (currentBondIndex > numberOfBondedDevices() - 1) {
     currentBondIndex = 0;
   }
-  DBUG(F("nextBondIndex:"));
-  DBUG(currentBondIndex, DEC);
+  DBUG_LOG(F("nextBondIndex:"));
+  DBUG_LOG(currentBondIndex, DEC);
 }
 
 uint8_t BlueCapPeripheral::numberOfBondedDevices() {

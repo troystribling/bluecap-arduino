@@ -34,14 +34,14 @@ void  BlueCapPeripheral::BlueCapBond::setup(aci_state_t* aciState) {
 bool BlueCapPeripheral::BlueCapBond::restoreIfBonded(aci_state_t* aciState) {
   bool result = true;
   if (bonded) {
-    DBUG(F("Previous Bond present. Restoring"));
+    DBUG_LOG(F("Previous Bond present. Restoring"));
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
-      DBUG(F("Bond restored successfully: Waiting for connection"));
+      DBUG_LOG(F("Bond restored successfully: Waiting for connection"));
       // prevents HW error
       delay(1000);
     }
     else {
-      ERROR(F("Bond restore failed. Delete the bond and try again."));
+      ERROR_LOG(F("Bond restore failed. Delete the bond and try again."));
       result = false;
     }
   }
@@ -50,17 +50,17 @@ bool BlueCapPeripheral::BlueCapBond::restoreIfBonded(aci_state_t* aciState) {
 
 void BlueCapPeripheral::BlueCapBond::writeIfBonded(aci_state_t* aciState, aci_evt_t* aciEvt) {
   if (ACI_BOND_STATUS_SUCCESS == aciState->bonded) {
-    DBUG(F("ACI_BOND_STATUS_SUCCESS"));
+    DBUG_LOG(F("ACI_BOND_STATUS_SUCCESS"));
     aciState->bonded = ACI_BOND_STATUS_FAILED;
     if (ACI_STATUS_EXTENDED == aciEvt->params.disconnected.aci_status) {
       if (!bonded) {
         if (readAndWriteBondData(aciState)) {
           bonded = true;
-          DBUG(F("Bond data read and store successful"));
+          DBUG_LOG(F("Bond data read and store successful"));
           // prevents HW error
           delay(1000);
         } else {
-          ERROR(F("Bond data read and store failed"));
+          ERROR_LOG(F("Bond data read and store failed"));
         }
       }
     }
@@ -79,7 +79,7 @@ aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(aci_state_t* 
     addr = readBondData(&aciCmd, addr);
 
     if (!hal_aci_tl_send(&aciCmd)) {
-      ERROR(F("restoreBondData: failed"));
+      ERROR_LOG(F("restoreBondData: failed"));
       return ACI_STATUS_ERROR_INTERNAL;
     }
 
@@ -87,24 +87,24 @@ aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(aci_state_t* 
       if (lib_aci_event_get(aciState, &aciData)) {
         aciEvt = &aciData.evt;
         if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode) {
-            ERROR(F("restoreBondData: failed with error: 0x"));
-            ERROR(aciEvt->evt_opcode, HEX);
+            ERROR_LOG(F("restoreBondData: failed with error: 0x"));
+            ERROR_LOG(aciEvt->evt_opcode, HEX);
             return ACI_STATUS_ERROR_INTERNAL;
         } else {
           if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
             bonded = true;
             aciState->bonded = ACI_BOND_STATUS_SUCCESS;
-            DBUG(F("Restore of bond data completed successfully"));
+            DBUG_LOG(F("Restore of bond data completed successfully"));
             return ACI_STATUS_TRANSACTION_COMPLETE;
           } else if (ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status) {
             numDynMsgs--;
             break;
           } else if (0 >= numDynMsgs) {
-            ERROR(F("Restore of bond data failed with too many messages"));
+            ERROR_LOG(F("Restore of bond data failed with too many messages"));
             return ACI_STATUS_ERROR_INTERNAL;
           } else {
-            ERROR(F("Restore of bond data failed with cmd_status:"));
-            ERROR(aciEvt->params.cmd_rsp.cmd_status, HEX);
+            ERROR_LOG(F("Restore of bond data failed with cmd_status:"));
+            ERROR_LOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
             return ACI_STATUS_ERROR_INTERNAL;
           }
         }
@@ -126,8 +126,8 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
     if (lib_aci_event_get(aciState, &aciData)) {
       aciEvt = &aciData.evt;
       if (ACI_EVT_CMD_RSP != aciEvt->evt_opcode ) {
-        ERROR(F("readAndWriteBondData command response failed:"));
-        ERROR(aciEvt->evt_opcode, HEX);
+        ERROR_LOG(F("readAndWriteBondData command response failed:"));
+        ERROR_LOG(aciEvt->evt_opcode, HEX);
         status = false;
         break;
       } else if (ACI_STATUS_TRANSACTION_COMPLETE == aciEvt->params.cmd_rsp.cmd_status) {
@@ -136,8 +136,8 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
         status = true;
         break;
       } else if (!(ACI_STATUS_TRANSACTION_CONTINUE == aciEvt->params.cmd_rsp.cmd_status)) {
-        ERROR(F("readAndWriteBondData transaction failed:"));
-        ERROR(aciEvt->params.cmd_rsp.cmd_status, HEX);
+        ERROR_LOG(F("readAndWriteBondData transaction failed:"));
+        ERROR_LOG(aciEvt->params.cmd_rsp.cmd_status, HEX);
         clearBondData();
         status = false;
         break;
@@ -177,12 +177,12 @@ uint16_t BlueCapPeripheral::BlueCapBond::readBondData(hal_aci_data_t* aciCmd, ui
 void BlueCapPeripheral::BlueCapBond::connectOrBond() {
   if (bonded) {
     peripheral->connect();
-    DBUG(F("Advertising started. Waiting for connection with bond:"));
+    DBUG_LOG(F("Advertising started. Waiting for connection with bond:"));
   } else {
     peripheral->bond();
-    DBUG(F("Advertising started : Waiting for connection and bonding with bond:"));
+    DBUG_LOG(F("Advertising started : Waiting for connection and bonding with bond:"));
   }
-  DBUG(index, DEC);
+  DBUG_LOG(index, DEC);
 }
 
 void BlueCapPeripheral::BlueCapBond::writeBondDataHeader(uint16_t dataAddress, uint8_t numDynMsgs) {
