@@ -38,7 +38,7 @@ bool BlueCapPeripheral::BlueCapBond::restoreIfBonded(aci_state_t* aciState) {
     if (ACI_STATUS_TRANSACTION_COMPLETE == restoreBondData(aciState)) {
       DBUG_LOG(F("Bond restored successfully: Waiting for connection"));
       // prevents HW error
-      delay(1000);
+      delay(2000);
     }
     else {
       ERROR_LOG(F("Bond restore failed. Delete the bond and try again."));
@@ -82,6 +82,8 @@ aci_status_code_t  BlueCapPeripheral::BlueCapBond::restoreBondData(aci_state_t* 
       ERROR_LOG(F("restoreBondData: failed"));
       return ACI_STATUS_ERROR_INTERNAL;
     }
+    // prevents HW error
+    delay(1000);
 
     while (1) {
       if (lib_aci_event_get(aciState, &aciData)) {
@@ -146,6 +148,8 @@ bool  BlueCapPeripheral::BlueCapBond::readAndWriteBondData(aci_state_t* aciState
         lib_aci_read_dynamic_data();
         numDynMsgs++;
       }
+      // prevents HW errors
+      delay(1000);
     }
   }
   return status;
